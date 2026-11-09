@@ -98,7 +98,7 @@ public static class Wlan
     {
         try
         {
-            if (WlanOpenHandle(2, IntPtr.Zero, out _, out IntPtr h) != 0) return "Không mở được Wi-Fi";
+            if (WlanOpenHandle(2, IntPtr.Zero, out _, out IntPtr h) != 0) return L.T("Không mở được Wi-Fi");
             try
             {
                 var g = net.Interface;
@@ -112,12 +112,12 @@ public static class Wlan
                     string hex = Convert.ToHexString(Encoding.UTF8.GetBytes(net.Ssid));
                     string xml = $"<?xml version=\"1.0\"?><WLANProfile xmlns=\"http://www.microsoft.com/networking/WLAN/profile/v1\"><name>{Esc(net.Ssid)}</name><SSIDConfig><SSID><hex>{hex}</hex><name>{Esc(net.Ssid)}</name></SSID></SSIDConfig><connectionType>ESS</connectionType><connectionMode>auto</connectionMode><MSM><security>{security}</security></MSM></WLANProfile>";
                     int r = WlanSetProfile(h, ref g, 0, xml, null, true, IntPtr.Zero, out int reason);
-                    if (r != 0) return $"Không lưu được hồ sơ mạng (mã {r}/{reason})";
+                    if (r != 0) return L.F("Không lưu được hồ sơ mạng (mã {0}/{1})", r, reason);
                     profile = net.Ssid;
                 }
                 var p = new WLAN_CONNECTION_PARAMETERS { wlanConnectionMode = 0, strProfile = profile, dot11BssType = 1 };
                 int rc = WlanConnect(h, ref g, ref p, IntPtr.Zero);
-                return rc == 0 ? null : $"Không kết nối được (mã {rc})";
+                return rc == 0 ? null : L.F("Không kết nối được (mã {0})", rc);
             }
             finally { WlanCloseHandle(h, IntPtr.Zero); }
         }

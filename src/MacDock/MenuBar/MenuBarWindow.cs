@@ -143,6 +143,30 @@ public sealed class MenuBarWindow : Window
         bool? darkText = Cfg.TextColor switch { "dark" => true, "light" => false, _ => null };
         switch (style)
         {
+            case "liquid":
+            {
+                double liq = Math.Clamp(Cfg.Liquid, 0, 1);
+                int hpx = (int)Math.Ceiling(Cfg.Height * Monitor.Scale);
+                var strip = Wallpaper.BlurredStrip(Monitor.Bounds, hpx, 8 + 30 * liq);
+                darkText ??= t.IsDark ? false : Wallpaper.TopLuminance() > 0.5;
+                var dg = new DrawingGroup();
+                var full = new Rect(0, 0, 100, 10);
+                if (strip != null) dg.Children.Add(new ImageDrawing(strip, full));
+                // lớp màu theo Dock + độ đậm
+                var dockC = t.DockBackground is SolidColorBrush ds ? ds.Color : t.DockBackground is LinearGradientBrush lg && lg.GradientStops.Count > 0 ? lg.GradientStops[0].Color : t.MenuBarColor;
+                byte ta = (byte)Math.Clamp((strip == null ? 150 : 75 - 45 * liq) * op, 0, 255);
+                dg.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromArgb(ta, dockC.R, dockC.G, dockC.B)), null, new RectangleGeometry(full)));
+                // bóng sáng phía trên (kính)
+                var gloss = new LinearGradientBrush(Color.FromArgb((byte)(35 + 55 * liq), 255, 255, 255), Color.FromArgb(0, 255, 255, 255), 90);
+                dg.Children.Add(new GeometryDrawing(gloss, null, new RectangleGeometry(new Rect(0, 0, 100, 5))));
+                dg.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromArgb((byte)(40 + 70 * liq), 255, 255, 255)), null, new RectangleGeometry(new Rect(0, 0, 100, 0.12))));
+                // viền sáng mép dưới
+                dg.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromArgb((byte)(40 + 80 * liq), 255, 255, 255)), null, new RectangleGeometry(new Rect(0, 9.9, 100, 0.1))));
+                dg.Freeze();
+                bg = new DrawingBrush(dg) { Stretch = Stretch.Fill };
+                bg.Freeze();
+                break;
+            }
             case "transparent":
                 darkText ??= Wallpaper.TopLuminance() > 0.58;
                 byte a = (byte)Math.Clamp(40 * op, 1, 255);
@@ -169,14 +193,14 @@ public sealed class MenuBarWindow : Window
                 darkText ??= !t.IsDark;
                 break;
         }
-        if (Cfg.TextColor == "auto" && style != "transparent") Fg = t.MenuBarForeground;
+        if (Cfg.TextColor == "auto" && style is not ("transparent" or "liquid")) Fg = t.MenuBarForeground;
         else Fg = Frz(new SolidColorBrush(darkText.Value ? Color.FromRgb(0x12, 0x12, 0x14) : Colors.White));
         var fc = Fg is SolidColorBrush sb ? sb.Color : Colors.Black;
         Hl = Frz(new SolidColorBrush(Color.FromArgb(0x2E, fc.R, fc.G, fc.B)));
         Foreground = Fg;
         _bg.Background = bg;
         _bg.BorderBrush = t.Separator;
-        _bg.BorderThickness = new Thickness(0, 0, 0, style == "transparent" || t.BorderThickness <= 0 ? 0 : 0.5);
+        _bg.BorderThickness = new Thickness(0, 0, 0, style is "transparent" or "liquid" || t.BorderThickness <= 0 ? 0 : 0.5);
         if (Hwnd != IntPtr.Zero)
         {
             var c = t.MenuBarColor;
@@ -414,7 +438,7 @@ public sealed class MenuBarWindow : Window
             t.FontSize = Math.Max(10, T.FontSize - 1.5);
             t.FontWeight = FontWeights.SemiBold;
             var box = new Border { Child = t, BorderBrush = fg, BorderThickness = new Thickness(1.1), CornerRadius = new CornerRadius(3), Padding = new Thickness(3, 0, 3, 0), VerticalAlignment = VerticalAlignment.Center, Opacity = 0.9 };
-            var b = Btn(box, null, 6, "Bộ gõ / ngôn ngữ");
+            var b = Btn(box, null, 6, L.T("Bộ gõ / ngôn ngữ"));
             AddTop(b, MenuBarMenus.LanguageMenu);
             _right.Children.Add(b);
         }
@@ -450,10 +474,10 @@ public sealed class MenuBarWindow : Window
         }
 
         if (Cfg.ShowControlCenter)
-            _right.Children.Add(Btn(Glyphs.ControlCenterIcon(fg, 15), el => ShowPopup(el, MenuBarPopups.ControlCenter()), 7, "Trung tâm điều khiển"));
+            _right.Children.Add(Btn(Glyphs.ControlCenterIcon(fg, 15), el => ShowPopup(el, MenuBarPopups.ControlCenter()), 7, L.T("Trung tâm điều khiển")));
 
         if (Cfg.ShowNotifications)
-            _right.Children.Add(Btn(Glyphs.Icon(Glyphs.Bell, fg, 15), _ => { CloseMenus(); Native.SendKeys(Native.VK_LWIN, 0x4E); }, 7, "Thông báo (Win+N)"));
+            _right.Children.Add(Btn(Glyphs.Icon(Glyphs.Bell, fg, 15), _ => { CloseMenus(); Native.SendKeys(Native.VK_LWIN, 0x4E); }, 7, L.T("Thông báo (Win+N)")));
 
         _clockText = Text(st.ClockText);
         _clockText.Margin = new Thickness(2, 0, 2, 0);
@@ -604,6 +628,24 @@ public sealed class MenuBarWindow : Window
         };
         _popup = popup;
         popup.IsOpen = true;
+        // Cửa sổ không kích hoạt nên Popup không tự biết khi bấm vào app khác: tự theo dõi chuột
+        var watch = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
+        bool wasDown = true;
+        watch.Tick += (_, _) =>
+        {
+            if (!popup.IsOpen) { watch.Stop(); return; }
+            bool down = (Native.GetAsyncKeyState(0x01) & 0x8000) != 0 || (Native.GetAsyncKeyState(0x02) & 0x8000) != 0;
+            if (down && !wasDown)
+            {
+                Native.GetCursorPos(out var pt);
+                bool inside = false;
+                if (PresentationSource.FromVisual(popup.Child) is HwndSource hs && Native.GetWindowRect(hs.Handle, out var pr)) inside = pr.Contains(pt.X, pt.Y);
+                if (!inside && Native.GetWindowRect(Hwnd, out var br)) inside = br.Contains(pt.X, pt.Y);
+                if (!inside) { popup.IsOpen = false; watch.Stop(); }
+            }
+            wasDown = down;
+        };
+        watch.Start();
         MenuBarPopups.CloseRequested = () => popup.IsOpen = false;
     }
 }

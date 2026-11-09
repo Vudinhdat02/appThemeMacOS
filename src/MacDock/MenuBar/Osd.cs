@@ -166,7 +166,7 @@ public sealed class OsdWindow : Window
     {
         var fg = ThemeManager.Current.PopupForeground;
         _icon.Content = kind == OsdKind.Volume ? Glyphs.VolumeIcon(fg, level, muted, 18) : Glyphs.Icon(Glyphs.Sun, fg, 18);
-        _label.Text = kind == OsdKind.Volume ? (muted ? "Âm thanh — tắt tiếng" : $"Âm thanh  {Math.Round(level * 100)}%") : $"Độ sáng  {Math.Round(level * 100)}%";
+        _label.Text = kind == OsdKind.Volume ? (muted ? L.T("Âm thanh — tắt tiếng") : L.F("Âm thanh  {0}%", Math.Round(level * 100))) : L.F("Độ sáng  {0}%", Math.Round(level * 100));
         double target = TrackW * Math.Clamp(muted ? 0 : level, 0, 1);
         if (App.EffectsOff || !IsVisible) _fill.Width = target;
         else _fill.BeginAnimation(WidthProperty, new DoubleAnimation(target, TimeSpan.FromMilliseconds(120)));

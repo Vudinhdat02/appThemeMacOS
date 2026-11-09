@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -18,11 +18,11 @@ public sealed class AppPickerWindow : GlassWindow
 
     public AppPickerWindow() : base(460)
     {
-        Title = "Thêm ứng dụng vào Dock";
+        Title = L.T("Thêm ứng dụng vào Dock");
         var sp = new StackPanel { Margin = new Thickness(22, 40, 22, 20) };
-        sp.Children.Add(new TextBlock { Text = "Thêm ứng dụng vào Dock", FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) });
+        sp.Children.Add(new TextBlock { Text = L.T("Thêm ứng dụng vào Dock"), FontSize = 18, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) });
         var sb = new Grid();
-        var hint = new TextBlock { Text = "Tìm ứng dụng…", Opacity = 0.45, Margin = new Thickness(12, 7, 0, 0), IsHitTestVisible = false };
+        var hint = new TextBlock { Text = L.T("Tìm ứng dụng…"), Opacity = 0.45, Margin = new Thickness(12, 7, 0, 0), IsHitTestVisible = false };
         sb.Children.Add(_search); sb.Children.Add(hint);
         _search.TextChanged += (_, _) => { hint.Visibility = _search.Text.Length > 0 ? Visibility.Collapsed : Visibility.Visible; Filter(); };
         sp.Children.Add(sb);
@@ -33,13 +33,13 @@ public sealed class AppPickerWindow : GlassWindow
         sp.Children.Add(_list);
         sp.Children.Add(_status);
         var buttons = new DockPanel { Margin = new Thickness(0, 14, 0, 0), LastChildFill = false };
-        var browse = PillButton("Chọn file .exe…", false);
+        var browse = PillButton(L.T("Chọn file .exe…"), false);
         browse.Click += (_, _) =>
         {
-            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Ứng dụng (*.exe;*.lnk)|*.exe;*.lnk", Title = "Chọn ứng dụng" };
-            if (dlg.ShowDialog(this) == true) { DockModel.Instance.HandleDrop(new[] { dlg.FileName }, null, int.MaxValue); _status.Text = "Đã ghim " + System.IO.Path.GetFileNameWithoutExtension(dlg.FileName); }
+            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = L.T("Ứng dụng (*.exe;*.lnk)|*.exe;*.lnk"), Title = L.T("Chọn ứng dụng") };
+            if (dlg.ShowDialog(this) == true) { DockModel.Instance.HandleDrop(new[] { dlg.FileName }, null, int.MaxValue); _status.Text = L.T("Đã ghim ") + System.IO.Path.GetFileNameWithoutExtension(dlg.FileName); }
         };
-        var add = PillButton("Thêm vào Dock", true); add.IsDefault = true;
+        var add = PillButton(L.T("Thêm vào Dock"), true); add.IsDefault = true;
         add.Click += (_, _) => AddSelected();
         DockPanel.SetDock(add, Dock.Right);
         buttons.Children.Add(browse); buttons.Children.Add(add);
@@ -50,7 +50,7 @@ public sealed class AppPickerWindow : GlassWindow
 
     async Task LoadApps()
     {
-        _status.Text = "Đang tải danh sách ứng dụng…";
+        _status.Text = L.T("Đang tải danh sách ứng dụng…");
         if (_cache == null)
         {
             var tcs = new TaskCompletionSource<List<InstalledApp>>();
@@ -71,7 +71,7 @@ public sealed class AppPickerWindow : GlassWindow
                             string? exe = null;
                             try { exe = item.ExtendedProperty("System.Link.TargetParsingPath") as string; } catch { }
                             if (exe != null && !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) exe = null;
-                            if (name.Contains("Uninstall", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Gỡ cài đặt", StringComparison.OrdinalIgnoreCase)) continue;
+                            if (name.Contains("Uninstall", StringComparison.OrdinalIgnoreCase) || name.StartsWith(L.T("Gỡ cài đặt"), StringComparison.OrdinalIgnoreCase)) continue;
                             var icon = ShellIcons.GetIcon(@"shell:AppsFolder\" + path, 32);
                             res.Add(new InstalledApp(name, path, exe, icon));
                         }
@@ -87,7 +87,7 @@ public sealed class AppPickerWindow : GlassWindow
         }
         _all = _cache;
         Filter();
-        _status.Text = $"{_all.Count} ứng dụng — bấm đúp để thêm";
+        _status.Text = L.F("{0} ứng dụng — bấm đúp để thêm", _all.Count);
     }
 
     void Filter()
@@ -107,6 +107,6 @@ public sealed class AppPickerWindow : GlassWindow
     {
         if (_list.SelectedItem is not ListBoxItem { Tag: InstalledApp a }) return;
         DockModel.Instance.PinInstalled(a);
-        _status.Text = "Đã thêm " + a.Name + " vào Dock";
+        _status.Text = L.T("Đã thêm ") + a.Name + L.T(" vào Dock");
     }
 }

@@ -25,7 +25,7 @@ public sealed class StatusService
     public event Action? ClockChanged;
 
     DispatcherTimer? _slow, _lang, _clock;
-    readonly CultureInfo _vi = CultureInfo.GetCultureInfo("vi-VN");
+
 
     public void Start(Dispatcher d)
     {
@@ -125,13 +125,14 @@ public sealed class StatusService
 
     public string FormatClock(string format, DateTime t)
     {
-        try { return t.ToString(format, _vi); }
-        catch { return t.ToString("HH:mm", _vi); }
+        try { return t.ToString(format, L.Culture); }
+        catch { return t.ToString("HH:mm", L.Culture); }
     }
 
     void UpdateClock()
     {
         var fmt = Config.Current.MenuBar.ClockFormat;
+        if (L.En && fmt == new MenuBarSettings().ClockFormat) fmt = "ddd MMM d   h:mm tt";
         var now = DateTime.Now;
         string text = FormatClock(fmt, now);
         bool seconds = fmt.Contains('s');

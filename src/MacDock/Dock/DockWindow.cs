@@ -30,7 +30,7 @@ public sealed class DockWindow : Window
         ResizeMode = ResizeMode.NoResize;
         Focusable = false;
         UseLayoutRounding = false;
-        _idle = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(50) };
+        _idle = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(30) };
         View = new DockView(this);
         Content = View;
         _idle.Tick += (_, _) => View.IdleCheck();

@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -12,8 +12,62 @@ public static class Wallpaper
     static extern bool SystemParametersInfo(uint action, uint param, StringBuilder sb, uint winIni);
 
     static double? _lum;
+    static readonly Dictionary<string, BitmapSource?> _strips = new();
 
-    public static void Invalidate() => _lum = null;
+    public static void Invalidate() { _lum = null; _strips.Clear(); }
+
+    public static string? Path()
+    {
+        var sb = new StringBuilder(520);
+        SystemParametersInfo(0x73, (uint)sb.Capacity, sb, 0);
+        var p = sb.ToString();
+        return !string.IsNullOrWhiteSpace(p) && File.Exists(p) ? p : null;
+    }
+
+    /// <summary>
+    /// Dải trên cùng của hình nền ở màn hình <paramref name="mon"/> (pixel vật lý), đã làm mờ.
+    /// Thanh Menu là AppBar nên phía sau nó luôn là hình nền: làm mờ trước một lần là đủ, không tốn CPU khi chạy.
+    /// </summary>
+    public static BitmapSource? BlurredStrip(RECT mon, int heightPx, double blur)
+    {
+        string key = $"{mon}|{heightPx}|{blur:0}";
+        if (_strips.TryGetValue(key, out var cached)) return cached;
+        BitmapSource? result = null;
+        try
+        {
+            var path = Path();
+            if (path != null)
+            {
+                var bi = new BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                bi.UriSource = new Uri(path);
+                bi.DecodePixelWidth = Math.Min(3840, mon.Width + 200);
+                bi.EndInit();
+                double iw = bi.PixelWidth, ih = bi.PixelHeight;
+                // kiểu "Fill": phóng cho phủ kín màn hình, căn giữa; phóng thêm chút để có viền khi làm mờ
+                double s = Math.Max(mon.Width / iw, mon.Height / ih) * 1.06;
+                double ox = (iw * s - mon.Width) / 2, oy = (ih * s - mon.Height) / 2;
+                int pad = (int)Math.Ceiling(blur * 1.5);
+                int w = mon.Width, h = heightPx + pad;
+                var img = new System.Windows.Controls.Image { Source = bi, Width = iw * s, Height = ih * s, Stretch = Stretch.Fill };
+                System.Windows.Controls.Canvas.SetLeft(img, -ox);
+                System.Windows.Controls.Canvas.SetTop(img, -oy);
+                var canvas = new System.Windows.Controls.Canvas { Width = w, Height = h, ClipToBounds = true, Children = { img } };
+                canvas.Effect = new System.Windows.Media.Effects.BlurEffect { Radius = blur, KernelType = System.Windows.Media.Effects.KernelType.Gaussian, RenderingBias = System.Windows.Media.Effects.RenderingBias.Quality };
+                canvas.Measure(new System.Windows.Size(w, h));
+                canvas.Arrange(new System.Windows.Rect(0, 0, w, h));
+                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(canvas);
+                result = new CroppedBitmap(rtb, new System.Windows.Int32Rect(0, 0, w, heightPx));
+                result.Freeze();
+            }
+        }
+        catch (Exception ex) { Log.Debug("Wallpaper strip: " + ex.Message); }
+        _strips[key] = result;
+        return result;
+    }
 
     /// <summary>Độ sáng 0..1 của dải trên cùng hình nền.</summary>
     public static double TopLuminance()

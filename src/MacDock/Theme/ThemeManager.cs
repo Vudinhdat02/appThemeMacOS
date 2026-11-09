@@ -36,7 +36,7 @@ public class ThemePalette
 public class ThemeDefinition
 {
     public string Id { get; set; } = "custom";
-    public string Name { get; set; } = "Tuỳ chỉnh";
+    public string Name { get; set; } = L.T("Tuỳ chỉnh");
     public string Author { get; set; } = "";
     public int Version { get; set; } = 1;
     public ThemePalette Light { get; set; } = new();
@@ -311,7 +311,7 @@ public static class ThemeManager
         ThemeDefinition def;
         string? tempDir = null;
         if (file.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            def = JsonSerializer.Deserialize<ThemeDefinition>(File.ReadAllText(file), Config.JsonOptions) ?? throw new InvalidDataException("theme.json rỗng");
+            def = JsonSerializer.Deserialize<ThemeDefinition>(File.ReadAllText(file), Config.JsonOptions) ?? throw new InvalidDataException(L.T("theme.json rỗng"));
         else
         {
             tempDir = Path.Combine(Path.GetTempPath(), "macdock-theme-" + Guid.NewGuid().ToString("N"));
@@ -329,8 +329,8 @@ public static class ThemeManager
                 }
             }
             var tj = Path.Combine(tempDir, "theme.json");
-            if (!File.Exists(tj)) throw new InvalidDataException("Không có theme.json trong gói theme");
-            def = JsonSerializer.Deserialize<ThemeDefinition>(File.ReadAllText(tj), Config.JsonOptions) ?? throw new InvalidDataException("theme.json rỗng");
+            if (!File.Exists(tj)) throw new InvalidDataException(L.T("Không có theme.json trong gói theme"));
+            def = JsonSerializer.Deserialize<ThemeDefinition>(File.ReadAllText(tj), Config.JsonOptions) ?? throw new InvalidDataException(L.T("theme.json rỗng"));
         }
         def.Id = MakeId(string.IsNullOrWhiteSpace(def.Name) ? Path.GetFileNameWithoutExtension(file) : def.Name);
         var dir = Path.Combine(Paths.ThemesDir, def.Id);
@@ -402,7 +402,7 @@ public static class ThemeManager
 
         list.Add(new ThemeDefinition
         {
-            Id = "sonoma", Name = "Sonoma", Author = "MacDock", BuiltIn = true,
+            Id = "sonoma", Name = L.T("Ánh sáng"), Author = "MacDock", BuiltIn = true,
             Light = new ThemePalette(),
             Dark = new ThemePalette
             {
@@ -416,7 +416,7 @@ public static class ThemeManager
 
         list.Add(new ThemeDefinition
         {
-            Id = "midnight", Name = "Nửa đêm", Author = "MacDock", BuiltIn = true, CornerRadius = 20,
+            Id = "midnight", Name = L.T("Nửa đêm"), Author = "MacDock", BuiltIn = true, CornerRadius = 20,
             Light = new ThemePalette
             {
                 DockBackground = "#8CDDE3F5", DockBackground2 = "#99C9D2EE", DockBorder = "#80FFFFFF", Dot = "#CC1B2A55",
@@ -435,7 +435,7 @@ public static class ThemeManager
 
         list.Add(new ThemeDefinition
         {
-            Id = "glass", Name = "Kính trong", Author = "MacDock", BuiltIn = true, CornerRadius = 22, ShadowOpacity = 0.18, MenuBarMaterial = "acrylic",
+            Id = "glass", Name = L.T("Kính trong"), Author = "MacDock", BuiltIn = true, CornerRadius = 22, ShadowOpacity = 0.18, MenuBarMaterial = "acrylic",
             Light = new ThemePalette
             {
                 DockBackground = "#33FFFFFF", DockBackground2 = "#26FFFFFF", DockBorder = "#99FFFFFF", DockHighlight = "#66FFFFFF",
@@ -452,7 +452,7 @@ public static class ThemeManager
 
         list.Add(new ThemeDefinition
         {
-            Id = "sunset", Name = "Hoàng hôn", Author = "MacDock", BuiltIn = true, CornerRadius = 20,
+            Id = "sunset", Name = L.T("Hoàng hôn"), Author = "MacDock", BuiltIn = true, CornerRadius = 20,
             Light = new ThemePalette
             {
                 DockBackground = "#99FFE3D1", DockBackground2 = "#A6FFC9C9", DockBorder = "#99FFFFFF", Dot = "#CC7A2E1F",
@@ -472,7 +472,7 @@ public static class ThemeManager
 
         list.Add(new ThemeDefinition
         {
-            Id = "forest", Name = "Rừng thông", Author = "MacDock", BuiltIn = true, CornerRadius = 16,
+            Id = "forest", Name = L.T("Rừng thông"), Author = "MacDock", BuiltIn = true, CornerRadius = 16,
             Light = new ThemePalette
             {
                 DockBackground = "#8CE2F0E4", DockBackground2 = "#99CFE6D3", DockBorder = "#99FFFFFF", Dot = "#CC1E4D2B",
@@ -491,7 +491,7 @@ public static class ThemeManager
 
         list.Add(new ThemeDefinition
         {
-            Id = "minimal", Name = "Tối giản", Author = "MacDock", BuiltIn = true, CornerRadius = 10, PopupCornerRadius = 6, BorderThickness = 0,
+            Id = "minimal", Name = L.T("Tối giản"), Author = "MacDock", BuiltIn = true, CornerRadius = 10, PopupCornerRadius = 6, BorderThickness = 0,
             ShadowBlur = 14, ShadowOpacity = 0.22, MenuBarMaterial = "solid", DockMaterial = "solid", FontFamily = "Segoe UI",
             Light = new ThemePalette
             {

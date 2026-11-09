@@ -13,19 +13,19 @@ public static class MenuBarMenus
     public static ContextMenu SystemMenu()
     {
         var cm = new ContextMenu();
-        cm.Items.Add(Mi("Giới thiệu máy này", () => AboutPcWindow.ShowSingle()));
+        cm.Items.Add(Mi(L.T("Giới thiệu máy này"), () => AboutPcWindow.ShowSingle()));
         cm.Items.Add(new Separator());
-        cm.Items.Add(Mi("Cài đặt Windows…", () => Launcher.Open("ms-settings:")));
-        cm.Items.Add(Mi("Cài đặt MacDock…", () => App.Instance.ShowSettings()));
+        cm.Items.Add(Mi(L.T("Cài đặt Windows…"), () => Launcher.Open("ms-settings:")));
+        cm.Items.Add(Mi(L.T("Cài đặt MacDock…"), () => App.Instance.ShowSettings()));
         cm.Items.Add(Mi("Task Manager", () => Launcher.Open("taskmgr.exe")));
         cm.Items.Add(new Separator());
-        cm.Items.Add(Mi("Ngủ", PowerActions.Sleep));
-        cm.Items.Add(Mi("Khởi động lại…", PowerActions.Restart));
-        cm.Items.Add(Mi("Tắt máy…", PowerActions.Shutdown));
+        cm.Items.Add(Mi(L.T("Ngủ"), PowerActions.Sleep));
+        cm.Items.Add(Mi(L.T("Khởi động lại…"), PowerActions.Restart));
+        cm.Items.Add(Mi(L.T("Tắt máy…"), PowerActions.Shutdown));
         cm.Items.Add(new Separator());
-        var lockItem = Mi("Khoá màn hình", PowerActions.Lock); lockItem.InputGestureText = "Win+L";
+        var lockItem = Mi(L.T("Khoá màn hình"), PowerActions.Lock); lockItem.InputGestureText = "Win+L";
         cm.Items.Add(lockItem);
-        cm.Items.Add(Mi($"Đăng xuất {Environment.UserName}…", PowerActions.LogOff));
+        cm.Items.Add(Mi(L.F("Đăng xuất {0}…", Environment.UserName), PowerActions.LogOff));
         return cm;
     }
 
@@ -33,37 +33,37 @@ public static class MenuBarMenus
     {
         var cm = new ContextMenu();
         bool own = app?.Pid == Environment.ProcessId;
-        cm.Items.Add(Mi($"Giới thiệu {name}", () => ShowAppInfo(app, name)));
+        cm.Items.Add(Mi(L.F("Giới thiệu {0}", name), () => ShowAppInfo(app, name)));
         if (own)
         {
             cm.Items.Add(new Separator());
-            cm.Items.Add(Mi("Cài đặt…", () => App.Instance.ShowSettings()));
+            cm.Items.Add(Mi(L.T("Cài đặt…"), () => App.Instance.ShowSettings()));
         }
         cm.Items.Add(new Separator());
         if (app != null)
         {
-            cm.Items.Add(Mi($"Ẩn {name}", () => { foreach (var w in WindowTracker.Instance.WindowsOf(app.Key)) WindowActions.Minimize(w.Hwnd); }));
-            cm.Items.Add(Mi("Ẩn ứng dụng khác", () =>
+            cm.Items.Add(Mi(L.F("Ẩn {0}", name), () => { foreach (var w in WindowTracker.Instance.WindowsOf(app.Key)) WindowActions.Minimize(w.Hwnd); }));
+            cm.Items.Add(Mi(L.T("Ẩn ứng dụng khác"), () =>
             {
                 foreach (var w in WindowTracker.Instance.Windows.Where(w => w.Id.Key != app.Key).ToList()) WindowActions.Minimize(w.Hwnd);
             }));
-            cm.Items.Add(Mi("Hiện tất cả", () =>
+            cm.Items.Add(Mi(L.T("Hiện tất cả"), () =>
             {
                 foreach (var w in WindowTracker.Instance.Windows.Where(w => w.Minimized).ToList()) Native.ShowWindowAsync(w.Hwnd, Native.SW_SHOWNOACTIVATE);
             }));
             cm.Items.Add(new Separator());
             if (app.ExePath != null && !own)
-                cm.Items.Add(Mi("Hiện trong Explorer", () => Launcher.ShowInExplorer(app.ExePath)));
+                cm.Items.Add(Mi(L.T("Hiện trong Explorer"), () => Launcher.ShowInExplorer(app.ExePath)));
             if (own)
-                cm.Items.Add(Mi("Thoát MacDock", () => App.Instance.Quit()));
+                cm.Items.Add(Mi(L.T("Thoát MacDock"), () => App.Instance.Quit()));
             else
             {
-                var quit = Mi($"Thoát {name}", () => { foreach (var w in WindowTracker.Instance.WindowsOf(app.Key)) WindowActions.Close(w.Hwnd); });
+                var quit = Mi(L.F("Thoát {0}", name), () => { foreach (var w in WindowTracker.Instance.WindowsOf(app.Key)) WindowActions.Close(w.Hwnd); });
                 quit.InputGestureText = "Alt+F4";
                 cm.Items.Add(quit);
-                cm.Items.Add(Mi("Buộc thoát…", () =>
+                cm.Items.Add(Mi(L.T("Buộc thoát…"), () =>
                 {
-                    if (MessageBox.Show($"Buộc thoát {name}? Dữ liệu chưa lưu sẽ bị mất.", "MacDock", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                    if (MessageBox.Show(L.F("Buộc thoát {0}? Dữ liệu chưa lưu sẽ bị mất.", name), "MacDock", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                         WindowActions.KillProcess(app.Pid);
                 }));
             }
@@ -79,22 +79,22 @@ public static class MenuBarMenus
             if (app?.ExePath != null && File.Exists(app.ExePath))
             {
                 var vi = FileVersionInfo.GetVersionInfo(app.ExePath);
-                text = $"{name}\n\nPhiên bản: {vi.ProductVersion ?? vi.FileVersion}\nNhà phát hành: {vi.CompanyName}\nĐường dẫn: {app.ExePath}";
+                text = L.F("{0}\n\nPhiên bản: {1}\nNhà phát hành: {2}\nĐường dẫn: {3}", name, vi.ProductVersion ?? vi.FileVersion, vi.CompanyName, app.ExePath);
             }
             if (app?.Aumid != null) text += $"\nAUMID: {app.Aumid}";
-            if (app?.Pid == Environment.ProcessId) text = $"MacDock {App.VersionString}\nGiao diện kiểu macOS cho Windows 11.\nMã nguồn mở - giấy phép MIT.";
+            if (app?.Pid == Environment.ProcessId) text = L.F("MacDock {0}\nDock, Thanh Menu và giao diện cho Windows 11.", App.VersionString);
         }
         catch { }
-        MessageBox.Show(text, "Giới thiệu", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(text, L.T("Giới thiệu"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     public static List<TopMenu> OwnMenus() => new()
     {
-        new() { Title = "Tệp", Build = () => new ContextMenu { Items = { Mi("Nhập theme…", () => App.Instance.ShowSettings("theme")), Mi("Mở thư mục dữ liệu", () => Launcher.Open(Paths.Root)) } } },
-        new() { Title = "Cửa sổ", Build = () => AppMenuProvider.WindowMenu(WindowTracker.Instance.ForegroundAppHwnd, WindowTracker.Instance.ForegroundApp) },
-        new() { Title = "Trợ giúp", Build = () => new ContextMenu { Items = {
-            Mi("Khôi phục taskbar Windows", () => { TaskbarController.Restore(); Config.Current.General.HideTaskbar = false; Config.Touch("general"); }),
-            Mi("Xem nhật ký (log)", () => Launcher.Open(Paths.LogFile)) } } },
+        new() { Title = L.T("Tệp"), Build = () => new ContextMenu { Items = { Mi(L.T("Nhập theme…"), () => App.Instance.ShowSettings("theme")), Mi(L.T("Mở thư mục dữ liệu"), () => Launcher.Open(Paths.Root)) } } },
+        new() { Title = L.T("Cửa sổ"), Build = () => AppMenuProvider.WindowMenu(WindowTracker.Instance.ForegroundAppHwnd, WindowTracker.Instance.ForegroundApp) },
+        new() { Title = L.T("Trợ giúp"), Build = () => new ContextMenu { Items = {
+            Mi(L.T("Khôi phục taskbar Windows"), () => { TaskbarController.Restore(); Config.Current.General.HideTaskbar = false; Config.Touch("general"); }),
+            Mi(L.T("Xem nhật ký (log)"), () => Launcher.Open(Paths.LogFile)) } } },
     };
 
     public static ContextMenu LanguageMenu()
@@ -109,9 +109,9 @@ public static class MenuBarMenus
             cm.Items.Add(mi);
         }
         cm.Items.Add(new Separator());
-        var sw = Mi("Chuyển bộ gõ tiếp theo", () => Native.SendKeys(Native.VK_LWIN, 0x20)); sw.InputGestureText = "Win+Space";
+        var sw = Mi(L.T("Chuyển bộ gõ tiếp theo"), () => Native.SendKeys(Native.VK_LWIN, 0x20)); sw.InputGestureText = "Win+Space";
         cm.Items.Add(sw);
-        cm.Items.Add(Mi("Cài đặt ngôn ngữ…", () => Launcher.Open("ms-settings:regionlanguage")));
+        cm.Items.Add(Mi(L.T("Cài đặt ngôn ngữ…"), () => Launcher.Open("ms-settings:regionlanguage")));
         return cm;
     }
 }
@@ -144,12 +144,12 @@ public static class MenuBarPopups
         var st = StatusService.Instance;
         var p = Panel();
         p.Children.Add(Title("Pin"));
-        p.Children.Add(Line($"{st.BatteryPercent}%  {(st.Charging ? "— đang sạc" : st.OnBattery ? "— đang dùng pin" : "— đã cắm sạc")}"));
+        p.Children.Add(Line($"{st.BatteryPercent}%  {(st.Charging ? L.T("— đang sạc") : st.OnBattery ? L.T("— đang dùng pin") : L.T("— đã cắm sạc"))}"));
         if (Native.GetSystemPowerStatus(out var s) && s.BatteryLifeTime > 0)
-            p.Children.Add(Line($"Còn khoảng {TimeSpan.FromSeconds(s.BatteryLifeTime):h' giờ 'mm' phút'}", 0.7));
+            p.Children.Add(Line(L.F("Còn khoảng {0} giờ {1} phút", (int)TimeSpan.FromSeconds(s.BatteryLifeTime).TotalHours, TimeSpan.FromSeconds(s.BatteryLifeTime).Minutes), 0.7));
         p.Children.Add(Sep());
-        p.Children.Add(Link("Cài đặt Pin…", () => Launcher.Open("ms-settings:batterysaver")));
-        p.Children.Add(Link("Nguồn & Ngủ…", () => Launcher.Open("ms-settings:powersleep")));
+        p.Children.Add(Link(L.T("Cài đặt Pin…"), () => Launcher.Open("ms-settings:batterysaver")));
+        p.Children.Add(Link(L.T("Nguồn & Ngủ…"), () => Launcher.Open("ms-settings:powersleep")));
         return p;
     }
 
@@ -170,15 +170,15 @@ public static class MenuBarPopups
         var scroll = new ScrollViewer { Content = list, MaxHeight = 300, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         p.Children.Add(scroll);
         p.Children.Add(Sep());
-        p.Children.Add(Link("Cài đặt Mạng & Internet…", () => Launcher.Open("ms-settings:network")));
+        p.Children.Add(Link(L.T("Cài đặt Mạng & Internet…"), () => Launcher.Open("ms-settings:network")));
 
         bool busy = false;
         async void Load(bool scan)
         {
-            status.Text = scan ? "Đang tìm mạng…" : "";
+            status.Text = scan ? L.T("Đang tìm mạng…") : "";
             var nets = await Task.Run(() => Wlan.Networks(scan));
             list.Children.Clear();
-            if (nets.Count == 0) { status.Text = "Không tìm thấy mạng Wi-Fi nào (Wi-Fi có thể đang tắt)."; return; }
+            if (nets.Count == 0) { status.Text = L.T("Không tìm thấy mạng Wi-Fi nào (Wi-Fi có thể đang tắt)."); return; }
             status.Text = "";
             var known = nets.Where(n => n.Connected || n.Profile != null).ToList();
             var others = nets.Except(known).ToList();
@@ -188,8 +188,8 @@ public static class MenuBarPopups
                 list.Children.Add(new TextBlock { Text = name, FontSize = T.FontSize - 1.5, Opacity = 0.55, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 6, 0, 2) });
                 foreach (var n in items) list.Children.Add(NetRow(n));
             }
-            Section("Mạng đã biết", known);
-            Section("Mạng khác", others);
+            Section(L.T("Mạng đã biết"), known);
+            Section(L.T("Mạng khác"), others);
         }
 
         FrameworkElement NetRow(WifiNetwork n)
@@ -208,7 +208,7 @@ public static class MenuBarPopups
             }
             var txt = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             txt.Children.Add(new TextBlock { Text = n.Ssid, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = n.Connected ? FontWeights.SemiBold : FontWeights.Normal });
-            if (n.Connected) txt.Children.Add(new TextBlock { Text = "Đã kết nối — bấm để ngắt", FontSize = T.FontSize - 2, Opacity = 0.6 });
+            if (n.Connected) txt.Children.Add(new TextBlock { Text = L.T("Đã kết nối — bấm để ngắt"), FontSize = T.FontSize - 2, Opacity = 0.6 });
             row.Children.Add(txt);
             var b = new Border { Child = row, Padding = new Thickness(6, 5, 6, 5), Margin = new Thickness(-6, 1, -6, 1), CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Cursor = System.Windows.Input.Cursors.Hand };
             b.MouseEnter += (_, _) => b.Background = new SolidColorBrush(Color.FromArgb(0x22, 0x80, 0x80, 0x88));
@@ -216,7 +216,7 @@ public static class MenuBarPopups
             b.MouseLeftButtonUp += async (_, _) =>
             {
                 if (busy) return;
-                if (n.Connected) { Wlan.Disconnect(n); status.Text = "Đã ngắt kết nối " + n.Ssid; await Task.Delay(1200); Load(false); return; }
+                if (n.Connected) { Wlan.Disconnect(n); status.Text = L.T("Đã ngắt kết nối ") + n.Ssid; await Task.Delay(1200); Load(false); return; }
                 string? pass = null;
                 if (n.Secured && n.Profile == null)
                 {
@@ -225,14 +225,14 @@ public static class MenuBarPopups
                     if (pass == null) return;
                 }
                 busy = true;
-                status.Text = "Đang kết nối " + n.Ssid + "…";
+                status.Text = L.T("Đang kết nối ") + n.Ssid + "…";
                 var err = await Task.Run(() => Wlan.Connect(n, pass));
                 if (err != null) { status.Text = err; busy = false; return; }
                 for (int i = 0; i < 10; i++)
                 {
                     await Task.Delay(800);
                     var now = await Task.Run(() => Wlan.Query());
-                    if (now.Kind == NetKind.Wifi && now.Name == n.Ssid) { status.Text = "Đã kết nối " + n.Ssid; StatusService.Instance.RefreshAll(); break; }
+                    if (now.Kind == NetKind.Wifi && now.Name == n.Ssid) { status.Text = L.T("Đã kết nối ") + n.Ssid; StatusService.Instance.RefreshAll(); break; }
                 }
                 busy = false;
                 Load(false);
@@ -241,7 +241,7 @@ public static class MenuBarPopups
         }
 
         toggle.Checked += async (_, _) => { await StatusService.SetRadio(Windows.Devices.Radios.RadioKind.WiFi, true); await Task.Delay(1500); Load(true); };
-        toggle.Unchecked += async (_, _) => { await StatusService.SetRadio(Windows.Devices.Radios.RadioKind.WiFi, false); list.Children.Clear(); status.Text = "Wi-Fi đã tắt"; };
+        toggle.Unchecked += async (_, _) => { await StatusService.SetRadio(Windows.Devices.Radios.RadioKind.WiFi, false); list.Children.Clear(); status.Text = L.T("Wi-Fi đã tắt"); };
         _ = StatusService.GetRadios().ContinueWith(t => App.Instance.Dispatcher.BeginInvoke(() =>
         {
             if (t.Result.wifi is bool on) toggle.IsChecked = on;
@@ -260,10 +260,10 @@ public static class MenuBarPopups
     public static FrameworkElement Volume()
     {
         var p = Panel();
-        p.Children.Add(Title("Âm thanh"));
+        p.Children.Add(Title(L.T("Âm thanh")));
         StatusService.Instance.RefreshAudio();
         var row = new DockPanel();
-        var icon = new Border { Child = Glyphs.VolumeIcon(T.PopupForeground, StatusService.Instance.Volume, StatusService.Instance.Muted, 18), Margin = new Thickness(0, 0, 8, 0), Background = Brushes.Transparent, Cursor = System.Windows.Input.Cursors.Hand, ToolTip = "Tắt/bật tiếng" };
+        var icon = new Border { Child = Glyphs.VolumeIcon(T.PopupForeground, StatusService.Instance.Volume, StatusService.Instance.Muted, 18), Margin = new Thickness(0, 0, 8, 0), Background = Brushes.Transparent, Cursor = System.Windows.Input.Cursors.Hand, ToolTip = L.T("Tắt/bật tiếng") };
         icon.MouseLeftButtonUp += (_, _) =>
         {
             AudioVolume.Instance.Muted = !AudioVolume.Instance.Muted;
@@ -284,8 +284,8 @@ public static class MenuBarPopups
         row.Children.Add(slider);
         p.Children.Add(row);
         p.Children.Add(Sep());
-        p.Children.Add(Link("Cài đặt âm thanh…", () => Launcher.Open("ms-settings:sound")));
-        p.Children.Add(Link("Bộ trộn âm lượng…", () => Launcher.Open("ms-settings:apps-volume")));
+        p.Children.Add(Link(L.T("Cài đặt âm thanh…"), () => Launcher.Open("ms-settings:sound")));
+        p.Children.Add(Link(L.T("Bộ trộn âm lượng…"), () => Launcher.Open("ms-settings:apps-volume")));
         return p;
     }
 
@@ -293,14 +293,14 @@ public static class MenuBarPopups
     {
         var p = Panel(250);
         var now = DateTime.Now;
-        var vi = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
+        var vi = L.Culture;
         p.Children.Add(new TextBlock { Text = now.ToString("dddd", vi), FontSize = T.FontSize + 1, Opacity = 0.7 });
         p.Children.Add(new TextBlock { Text = now.ToString("d MMMM, yyyy", vi), FontSize = T.FontSize + 5, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 6) });
-        var cal = new System.Windows.Controls.Calendar { SelectedDate = now.Date, DisplayDate = now.Date, Language = System.Windows.Markup.XmlLanguage.GetLanguage("vi-VN"), FirstDayOfWeek = DayOfWeek.Monday, HorizontalAlignment = HorizontalAlignment.Center };
+        var cal = new System.Windows.Controls.Calendar { SelectedDate = now.Date, DisplayDate = now.Date, Language = System.Windows.Markup.XmlLanguage.GetLanguage(L.Culture.Name), FirstDayOfWeek = DayOfWeek.Monday, HorizontalAlignment = HorizontalAlignment.Center };
         p.Children.Add(cal);
         p.Children.Add(Sep());
-        p.Children.Add(Link("Mở Thông báo & Lịch (Win+N)", () => Native.SendKeys(Native.VK_LWIN, 0x4E)));
-        p.Children.Add(Link("Cài đặt ngày giờ…", () => Launcher.Open("ms-settings:dateandtime")));
+        p.Children.Add(Link(L.T("Mở Thông báo & Lịch (Win+N)"), () => Native.SendKeys(Native.VK_LWIN, 0x4E)));
+        p.Children.Add(Link(L.T("Cài đặt ngày giờ…"), () => Launcher.Open("ms-settings:dateandtime")));
         return p;
     }
 
@@ -350,7 +350,7 @@ public static class MenuBarPopups
         wifi = MakeTile(Glyphs.WifiFull, "Wi-Fi", true, async t =>
         {
             bool target = !t.On;
-            SetTile(t, target, target ? "Đang bật…" : "Đang tắt…");
+            SetTile(t, target, target ? L.T("Đang bật…") : L.T("Đang tắt…"));
             if (!await StatusService.SetRadio(Windows.Devices.Radios.RadioKind.WiFi, target)) Launcher.Open("ms-settings:network-wifi");
             await Task.Delay(800);
             await RefreshRadios();
@@ -358,21 +358,21 @@ public static class MenuBarPopups
         bt = MakeTile(Glyphs.Bluetooth, "Bluetooth", true, async t =>
         {
             bool target = !t.On;
-            SetTile(t, target, target ? "Đang bật…" : "Đang tắt…");
+            SetTile(t, target, target ? L.T("Đang bật…") : L.T("Đang tắt…"));
             if (!await StatusService.SetRadio(Windows.Devices.Radios.RadioKind.Bluetooth, target)) Launcher.Open("ms-settings:bluetooth");
             await Task.Delay(800);
             await RefreshRadios();
         });
         bool dark = ThemeManager.SystemIsDark();
-        var darkTile = MakeTile(Glyphs.Moon, "Chế độ tối", false, t =>
+        var darkTile = MakeTile(Glyphs.Moon, L.T("Chế độ tối"), false, t =>
         {
             bool target = !t.On;
             StatusService.SetWindowsDark(target);
-            SetTile(t, target, target ? "Bật" : "Tắt");
+            SetTile(t, target, target ? L.T("Bật") : L.T("Tắt"));
             if (Config.Current.Theme.Mode == ThemeMode.System) App.Instance.Dispatcher.BeginInvoke(() => ThemeManager.Apply(false));
         });
-        SetTile(darkTile, dark, dark ? "Bật" : "Tắt");
-        var quick = MakeTile(Glyphs.Gear, "Cài đặt nhanh", false, _ => { CloseRequested?.Invoke(); Native.SendKeys(Native.VK_LWIN, 0x41); });
+        SetTile(darkTile, dark, dark ? L.T("Bật") : L.T("Tắt"));
+        var quick = MakeTile(Glyphs.Gear, L.T("Cài đặt nhanh"), false, _ => { CloseRequested?.Invoke(); Native.SendKeys(Native.VK_LWIN, 0x41); });
         SetTile(quick, false, "Win+A");
         grid.Children.Add(wifi.Root); grid.Children.Add(bt.Root); grid.Children.Add(darkTile.Root); grid.Children.Add(quick.Root);
         root.Children.Add(grid);
@@ -381,10 +381,10 @@ public static class MenuBarPopups
         {
             var (w, b) = await StatusService.GetRadios();
             var net = StatusService.Instance.Net;
-            if (w == null) SetTile(wifi, net.Kind == NetKind.Wifi, net.Kind == NetKind.Wifi ? net.Name : "Không rõ");
-            else SetTile(wifi, w.Value, w.Value ? (net.Kind == NetKind.Wifi ? net.Name : "Bật") : "Tắt");
-            if (b == null) SetTile(bt, false, "Không có");
-            else SetTile(bt, b.Value, b.Value ? "Bật" : "Tắt");
+            if (w == null) SetTile(wifi, net.Kind == NetKind.Wifi, net.Kind == NetKind.Wifi ? net.Name : L.T("Không rõ"));
+            else SetTile(wifi, w.Value, w.Value ? (net.Kind == NetKind.Wifi ? net.Name : L.T("Bật")) : L.T("Tắt"));
+            if (b == null) SetTile(bt, false, L.T("Không có"));
+            else SetTile(bt, b.Value, b.Value ? L.T("Bật") : L.T("Tắt"));
         }
         _ = RefreshRadios();
 
@@ -398,7 +398,7 @@ public static class MenuBarPopups
             {
                 if (b == null) return;
                 brightBox.Visibility = Visibility.Visible;
-                brightBox.Children.Add(new TextBlock { Text = "Màn hình", FontWeight = FontWeights.SemiBold, Margin = new Thickness(4, 10, 0, 2) });
+                brightBox.Children.Add(new TextBlock { Text = L.T("Màn hình"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(4, 10, 0, 2) });
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 0, 0, 0) };
                 row.Children.Add(Glyphs.Icon(Glyphs.Sun, T.PopupForeground, 16));
                 DateTime last = DateTime.MinValue;
@@ -420,7 +420,7 @@ public static class MenuBarPopups
         StatusService.Instance.RefreshAudio();
         if (StatusService.Instance.AudioAvailable)
         {
-            root.Children.Add(new TextBlock { Text = "Âm thanh", FontWeight = FontWeights.SemiBold, Margin = new Thickness(4, 10, 0, 2) });
+            root.Children.Add(new TextBlock { Text = L.T("Âm thanh"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(4, 10, 0, 2) });
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 0, 0, 0) };
             row.Children.Add(Glyphs.VolumeIcon(T.PopupForeground, StatusService.Instance.Volume, false, 16));
             var s = MakeSlider(StatusService.Instance.Volume * 100, v => { AudioVolume.Instance.Level = (float)(v / 100); if (v > 0) AudioVolume.Instance.Muted = false; });
@@ -430,7 +430,7 @@ public static class MenuBarPopups
         }
 
         root.Children.Add(Sep());
-        root.Children.Add(Link("Cài đặt MacDock…", () => App.Instance.ShowSettings()));
+        root.Children.Add(Link(L.T("Cài đặt MacDock…"), () => App.Instance.ShowSettings()));
         return root;
     }
 }

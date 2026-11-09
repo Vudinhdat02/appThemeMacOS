@@ -35,7 +35,7 @@ Thùng rác, Wi-Fi, pin…) đều tự vẽ bằng vector.
 - Nhiều màn hình; tự ẩn khi có ứng dụng toàn màn hình (game, video).
 
 ### Thanh Menu
-- Nền trong suốt kiểu macOS 26 (màu chữ tự chọn theo hình nền), kính mờ, đồng bộ với Dock hoặc màu đặc.
+- Nền kính liquid (làm mờ thật hình nền, chỉnh được độ liquid), trong suốt, kính mờ, màu của Dock hoặc màu đặc; màu chữ tự chọn theo hình nền.
 - Logo hình tròn (đổi được, kể cả ảnh tự chọn) mở menu hệ thống: Giới thiệu máy này, Cài đặt Windows, Cài đặt MacDock, Task Manager, Ngủ, Khởi động lại, Tắt máy, Khoá, Đăng xuất.
 - Tên ứng dụng đang dùng (in đậm) và **menu thật** của ứng dụng: menu Win32 (`GetMenu`) hoặc UI Automation; nếu app không có thì dùng menu chung (Tệp, Sửa, Xem, Cửa sổ, Trợ giúp).
 - Bên phải: **icon khay hệ thống** (Unikey/EVKey, Zalo, OneDrive, PowerToys… — bấm trái/phải/đúp đều hoạt động), bộ gõ/ngôn ngữ,
@@ -46,11 +46,12 @@ Thùng rác, Wi-Fi, pin…) đều tự vẽ bằng vector.
 - Bấm phím âm lượng/độ sáng hiện bảng kính kiểu macOS 26 thay cho bảng của Windows (chọn được trong Cài đặt).
 
 ### Cài đặt, theme, hệ thống
-- Cửa sổ Cài đặt tiếng Việt kiểu System Settings, xem trước trực tiếp, khôi phục mặc định từng trang hoặc toàn bộ.
+- Giao diện Tiếng Việt / English (chọn trong Cài đặt → Chung).
+- Cửa sổ Cài đặt kiểu System Settings, xem trước trực tiếp, khôi phục mặc định từng trang hoặc toàn bộ.
 - Trang Hiệu năng: giới hạn FPS, tắt hiệu ứng, giảm hiệu ứng khi dùng pin, đo RAM/CPU trực tiếp.
 - Theme engine (`theme.json`): màu sáng/tối, độ trong suốt, gradient, kính Acrylic cho Thanh Menu, viền, bo góc, bóng, phông chữ;
   chế độ Sáng / Tối / Theo Windows / Theo giờ; icon gốc hoặc squircle; đổi icon từng app; icon pack;
-  nhập/xuất gói `.macdocktheme` (zip). 6 theme dựng sẵn: Sonoma, Nửa đêm, Kính trong, Hoàng hôn, Rừng thông, Tối giản.
+  nhập/xuất gói `.macdocktheme` (zip). 6 theme dựng sẵn: Ánh sáng, Nửa đêm, Kính trong, Hoàng hôn, Rừng thông, Tối giản.
   Đổi nhanh từ menu chuột phải của Dock.
 - Tự khởi động cùng Windows (bật mặc định), màn hình chào lần đầu, chỉ một tiến trình (chạy lại → mở Cài đặt).
 - "Giới thiệu máy này" và màn hình chào kiểu macOS 26.
