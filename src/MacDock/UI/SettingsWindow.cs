@@ -231,6 +231,18 @@ public sealed class SettingsWindow : Window
         })));
     }
 
+    static string CopyToIcons(string file)
+    {
+        try
+        {
+            var dir = Path.Combine(Paths.IconsDir, "custom"); Directory.CreateDirectory(dir);
+            var dest = Path.Combine(dir, Guid.NewGuid().ToString("N")[..8] + Path.GetExtension(file));
+            File.Copy(file, dest, true);
+            return dest;
+        }
+        catch { return file; }
+    }
+
     // ------------------------------------------------------------------ trang Chung
 
     void BuildGeneral(StackPanel content)
@@ -242,6 +254,12 @@ public sealed class SettingsWindow : Window
             "Tắt nếu muốn giữ taskbar gốc (phương án dự phòng). Khi ẩn, icon khay hệ thống được hiện trên Thanh Menu.");
         Row(card, "Tiến trình canh chừng (watchdog)", Toggle(g.Watchdog, v => { g.Watchdog = v; Config.Touch("general"); }),
             "Tự khôi phục taskbar nếu MacDock bị tắt đột ngột. Có hiệu lực từ lần khởi động sau.");
+
+        var osd = Card(content, "Âm lượng & độ sáng");
+        Row(osd, "Giao diện khi bấm phím âm lượng/độ sáng", Combo(new[] { ("macdock", "Kiểu macOS (MacDock)"), ("windows", "Mặc định của Windows") }, g.OsdStyle, v => { g.OsdStyle = v; Config.Touch("general"); }),
+            "Phím độ sáng do phần cứng xử lý nên Windows có thể vẫn hiện bảng của nó");
+        Row(osd, "Vị trí", Combo(new[] { ("top-right", "Góc trên bên phải (macOS 26)"), ("bottom", "Giữa phía dưới") }, g.OsdPosition, v => { g.OsdPosition = v; Config.Touch("general"); }));
+        Row(osd, "Thử", Btn("Hiện thử", () => OsdWindow.ShowLevel(OsdKind.Volume, AudioVolume.Instance.Level, AudioVolume.Instance.Muted)));
 
         var card2 = Card(content, "Khôi phục & dữ liệu");
         Row(card2, "Khôi phục taskbar Windows ngay", Btn("Khôi phục", () => { g.HideTaskbar = false; Config.Touch("general"); Navigate("general", true); }),
@@ -271,6 +289,36 @@ public sealed class SettingsWindow : Window
         Row(card, "Khoảng cách giữa icon", SliderBox(0, 20, d.Spacing, v => $"{v:0} px", v => { d.Spacing = v; T(); }));
         Row(card, "Hiện trên màn hình", Combo(new[] { (MonitorMode.All, "Tất cả màn hình"), (MonitorMode.Primary, "Chỉ màn hình chính") }, d.Monitors, v => { d.Monitors = v; T(); }));
 
+        var pins = Card(content, "Ứng dụng trên Dock");
+        for (int i = 0; i < d.Pinned.Count; i++)
+        {
+            int idx = i; var pin = d.Pinned[i];
+            var row = new Grid { Margin = new Thickness(0, 5, 0, 5) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var left = new StackPanel { Orientation = Orientation.Horizontal };
+            var dockItem = DockModel.Instance.Items.FirstOrDefault(x => x.Key == pin.Key);
+            var img = dockItem != null ? DockModel.Instance.GetIcon(dockItem) : null;
+            left.Children.Add(new Image { Source = img, Width = 24, Height = 24, Margin = new Thickness(0, 0, 10, 0) });
+            left.Children.Add(new TextBlock { Text = pin.Name ?? dockItem?.Name ?? Path.GetFileNameWithoutExtension(pin.Path), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 300 });
+            row.Children.Add(left);
+            var btns = new StackPanel { Orientation = Orientation.Horizontal };
+            Button Small(string s, Action a, bool enabled = true) { var b = Btn(s, a); b.Padding = new Thickness(9, 3, 9, 3); b.Margin = new Thickness(4, 0, 0, 0); b.IsEnabled = enabled; return b; }
+            btns.Children.Add(Small("↑", () => { var x = d.Pinned[idx]; d.Pinned.RemoveAt(idx); d.Pinned.Insert(idx - 1, x); Config.Touch("pins"); Navigate("dock", true); }, idx > 0));
+            btns.Children.Add(Small("↓", () => { var x = d.Pinned[idx]; d.Pinned.RemoveAt(idx); d.Pinned.Insert(idx + 1, x); Config.Touch("pins"); Navigate("dock", true); }, idx < d.Pinned.Count - 1));
+            btns.Children.Add(Small("Gỡ", () => { d.Pinned.RemoveAt(idx); Config.Touch("pins"); Navigate("dock", true); }));
+            Grid.SetColumn(btns, 1);
+            row.Children.Add(btns);
+            if (pins.Children.Count > 0) { var line = new Border { Height = 1 }; line.SetResourceReference(Border.BackgroundProperty, "Md.Separator"); pins.Children.Add(line); }
+            pins.Children.Add(row);
+        }
+        content.Children.Add(Buttons(Btn("Thêm ứng dụng…", () =>
+        {
+            var w = new AppPickerWindow { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+            w.Closed += (_, _) => Navigate("dock", true);
+            w.Show();
+        }, true)));
+
         var mag = Card(content, "Phóng to");
         Row(mag, "Phóng to khi rê chuột", Toggle(d.Magnify, v => { d.Magnify = v; T(); }));
         Row(mag, "Mức phóng to", SliderBox(1.1, 3, d.MagnifyScale, v => $"{v:0.00}×", v => { d.MagnifyScale = v; T(); }, 0.05));
@@ -285,7 +333,23 @@ public sealed class SettingsWindow : Window
         Row(vis, "Đọc số từ tiêu đề cửa sổ", Toggle(d.BadgeFromTitle, v => { d.BadgeFromTitle = v; T(); }), "Ví dụ tiêu đề \"(3) Messenger\" → huy hiệu 3");
         Row(vis, "Hiện ứng dụng đang chạy chưa ghim", Toggle(d.ShowRunningUnpinned, v => { d.ShowRunningUnpinned = v; T(); }));
         Row(vis, "Hiện Launchpad (mở Start)", Toggle(d.ShowLaunchpad, v => { d.ShowLaunchpad = v; T(); }));
+        var lpRow = new StackPanel { Orientation = Orientation.Horizontal };
+        lpRow.Children.Add(Combo(new[] { ("grid", "Lưới màu (mặc định)"), ("windows", "Logo Windows 11"), ("custom", "Ảnh tự chọn") }, d.LaunchpadIcon, v => { d.LaunchpadIcon = v; T(); }));
+        var lpBtn = Btn("Chọn ảnh…", () =>
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Ảnh/Icon (*.png;*.jpg;*.ico;*.exe)|*.png;*.jpg;*.jpeg;*.ico;*.exe" };
+            if (dlg.ShowDialog(this) != true) return;
+            d.LaunchpadImage = CopyToIcons(dlg.FileName); d.LaunchpadIcon = "custom"; T(); Navigate("dock", true);
+        });
+        lpBtn.Margin = new Thickness(8, 0, 0, 0);
+        lpRow.Children.Add(lpBtn);
+        Row(vis, "Biểu tượng Launchpad", lpRow);
         Row(vis, "Hiện Thùng rác", Toggle(d.ShowTrash, v => { d.ShowTrash = v; T(); }));
+
+        var pv = Card(content, "Xem trước cửa sổ");
+        Row(pv, "Xem trước khi rê chuột lên ứng dụng đang chạy", Toggle(d.WindowPreviews, v => { d.WindowPreviews = v; T(); }), "Hiện ảnh thu nhỏ trực tiếp các cửa sổ; bấm để chuyển, nút × để đóng");
+        Row(pv, "Độ trễ", SliderBox(0, 1500, d.PreviewDelayMs, v => $"{v:0} ms", v => { d.PreviewDelayMs = (int)v; T(); }, 50));
+        Row(pv, "Kích thước ảnh", SliderBox(120, 360, d.PreviewWidth, v => $"{v:0} px", v => { d.PreviewWidth = v; T(); }, 10));
 
         var anim = Card(content, "Nảy");
         Row(anim, "Nảy khi mở ứng dụng", Toggle(d.BounceOnLaunch, v => { d.BounceOnLaunch = v; T(); }));
@@ -293,6 +357,7 @@ public sealed class SettingsWindow : Window
 
         var hide = Card(content, "Tự động ẩn");
         Row(hide, "Tự động ẩn và hiện Dock", Toggle(d.AutoHide, v => { d.AutoHide = v; T(); }));
+        Row(hide, "Chỉ ẩn khi có cửa sổ che Dock", Toggle(d.AutoHideOnlyWhenCovered, v => { d.AutoHideOnlyWhenCovered = v; T(); }), "Ở màn hình chính (không có cửa sổ nào che) Dock luôn hiện");
         Row(hide, "Độ trễ khi hiện", SliderBox(0, 2000, d.AutoHideShowDelayMs, v => $"{v:0} ms", v => { d.AutoHideShowDelayMs = (int)v; T(); }, 50));
         Row(hide, "Độ trễ khi ẩn", SliderBox(0, 3000, d.AutoHideHideDelayMs, v => $"{v:0} ms", v => { d.AutoHideHideDelayMs = (int)v; T(); }, 50));
         Row(hide, "Chừa chỗ cho Dock", Toggle(d.ReserveSpace, v => { d.ReserveSpace = v; T(); }), "Cửa sổ phóng to không che Dock (khi không tự ẩn)");
@@ -312,6 +377,22 @@ public sealed class SettingsWindow : Window
         Row(card, "Chiều cao", SliderBox(20, 40, m.Height, v => $"{v:0} px", v => { m.Height = v; T(); }));
         Row(card, "Hiện trên màn hình", Combo(new[] { (MonitorMode.All, "Tất cả màn hình"), (MonitorMode.Primary, "Chỉ màn hình chính") }, m.Monitors, v => { m.Monitors = v; T(); }));
         Row(card, "Tên ứng dụng in đậm", Toggle(m.BoldAppName, v => { m.BoldAppName = v; T(); }));
+
+        var look = Card(content, "Giao diện Thanh Menu");
+        Row(look, "Kiểu nền", Combo(new[] { ("transparent", "Trong suốt (macOS 26)"), ("glass", "Kính mờ"), ("dock", "Đồng bộ với Dock"), ("solid", "Màu đặc"), ("theme", "Theo chủ đề") }, m.Style, v => { m.Style = v; T(); }));
+        Row(look, "Độ đậm nền", SliderBox(0, 1.5, m.Opacity, v => $"{v * 100:0}%", v => { m.Opacity = v; T(); }, 0.05));
+        Row(look, "Màu chữ", Combo(new[] { ("auto", "Tự động (theo hình nền/chủ đề)"), ("dark", "Tối"), ("light", "Sáng") }, m.TextColor, v => { m.TextColor = v; T(); }));
+        var logoRow = new StackPanel { Orientation = Orientation.Horizontal };
+        logoRow.Children.Add(Combo(new[] { ("circle", "Hình tròn"), ("flower", "Bông hoa"), ("custom", "Ảnh tự chọn") }, m.LogoStyle, v => { m.LogoStyle = v; T(); }));
+        var logoBtn = Btn("Chọn ảnh…", () =>
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Ảnh (*.png;*.jpg;*.ico)|*.png;*.jpg;*.jpeg;*.ico" };
+            if (dlg.ShowDialog(this) != true) return;
+            m.LogoImage = CopyToIcons(dlg.FileName); m.LogoStyle = "custom"; T(); Navigate("menubar", true);
+        });
+        logoBtn.Margin = new Thickness(8, 0, 0, 0);
+        logoRow.Children.Add(logoBtn);
+        Row(look, "Biểu tượng góc trái", logoRow, "Ảnh tự chọn được cắt thành hình tròn");
 
         var menus = Card(content, "Menu ứng dụng");
         Row(menus, "Hiện menu của ứng dụng đang dùng", Toggle(m.ShowAppMenus, v => { m.ShowAppMenus = v; T(); }), "Menu Win32 thật nếu ứng dụng có; nếu không thì menu chung (Tệp, Sửa, Xem, Cửa sổ)");
@@ -350,7 +431,7 @@ public sealed class SettingsWindow : Window
         if (tray.Count > 0)
         {
             var tc = Card(content, "Icon khay hệ thống đang có");
-            foreach (var icon in tray.OrderBy(i => i.Order))
+            foreach (var icon in tray.Where(i => !i.IsSystemDuplicate).OrderBy(i => i.Order))
             {
                 var key = icon.PersistKey;
                 var sp2 = new StackPanel { Orientation = Orientation.Horizontal };
@@ -591,14 +672,18 @@ public sealed class SettingsWindow : Window
         var card = Card(content);
         var sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 14) };
         sp.Children.Add(new Image { Source = Glyphs.AppIcon, Width = 72, Height = 72 });
-        var info = new StackPanel { Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var info = new StackPanel { Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, MaxWidth = 560 };
         info.Children.Add(new TextBlock { Text = "MacDock", FontSize = 20, FontWeight = FontWeights.SemiBold });
         info.Children.Add(new TextBlock { Text = "Phiên bản " + App.VersionString });
         info.Children.Add(Subtle("Bộ giao diện kiểu macOS cho Windows 11: Dock, Thanh Menu, theme. Phần mềm gốc, không dùng tài nguyên của Apple."));
         info.Children.Add(Subtle("Mã nguồn mở — giấy phép MIT."));
         sp.Children.Add(info);
         card.Children.Add(sp);
+        var dev = Card(content, "Nhà phát triển");
+        dev.Children.Add(Developer.Build());
+
         var c2 = Card(content, "Thông tin");
+        Row(c2, "Mã nguồn", Btn("Mở GitHub", () => Launcher.Open(Developer.Repo)));
         Row(c2, "Thư mục dữ liệu", new TextBlock { Text = Paths.Root, TextWrapping = TextWrapping.Wrap, MaxWidth = 380 });
         Row(c2, "File chạy", new TextBlock { Text = Paths.ExePath, TextWrapping = TextWrapping.Wrap, MaxWidth = 380 });
         Row(c2, "Nhật ký", Btn("Mở log", () => Launcher.Open(Paths.LogFile)));

@@ -232,6 +232,26 @@ public static class Glyphs
         return img;
     }
 
+    static DrawingImage? _winLogo;
+    /// <summary>Biểu tượng bốn ô vuông xanh kiểu Windows 11 (vẽ vector).</summary>
+    public static DrawingImage WindowsLogo => _winLogo ??= BuildWindowsLogo();
+    static DrawingImage BuildWindowsLogo()
+    {
+        var dg = new DrawingGroup();
+        using (var dc = dg.Open())
+        {
+            dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, 128, 128));
+            var br = new LinearGradientBrush(Color.FromRgb(0x2B, 0xC4, 0xF3), Color.FromRgb(0x00, 0x67, 0xC0), new Point(0, 0), new Point(1, 1));
+            br.Freeze();
+            double s = 52, gap = 6, o = 64 - s - gap / 2;
+            for (int i = 0; i < 4; i++)
+                dc.DrawRoundedRectangle(br, null, new Rect(o + (i % 2) * (s + gap), o + (i / 2) * (s + gap), s, s), 3, 3);
+        }
+        dg.Freeze();
+        var img = new DrawingImage(dg); img.Freeze();
+        return img;
+    }
+
     public static DrawingImage Trash(bool full) => full ? (_trashFull ??= BuildTrash(true)) : (_trashEmpty ??= BuildTrash(false));
     static DrawingImage BuildTrash(bool full)
     {

@@ -27,6 +27,10 @@ public class GeneralSettings
     public bool HideTaskbar { get; set; } = true;
     public bool FirstRunDone { get; set; }
     public bool Watchdog { get; set; } = true;
+    /// <summary>macdock | windows — giao diện khi bấm phím âm lượng/độ sáng</summary>
+    public string OsdStyle { get; set; } = "macdock";
+    /// <summary>top-right | bottom</summary>
+    public string OsdPosition { get; set; } = "top-right";
 }
 
 public class DockSettings
@@ -45,13 +49,20 @@ public class DockSettings
     public bool BounceOnLaunch { get; set; } = true;
     public bool BounceOnAttention { get; set; } = true;
     public bool AutoHide { get; set; }
-    public int AutoHideShowDelayMs { get; set; } = 250;
+    public int AutoHideShowDelayMs { get; set; } = 80;
+    public bool AutoHideOnlyWhenCovered { get; set; } = true;
     public int AutoHideHideDelayMs { get; set; } = 500;
     public bool ReserveSpace { get; set; } = true;
     public bool ShowRunningUnpinned { get; set; } = true;
     public bool ShowLaunchpad { get; set; } = true;
+    /// <summary>grid | windows | custom</summary>
+    public string LaunchpadIcon { get; set; } = "grid";
+    public string? LaunchpadImage { get; set; }
     public bool ShowTrash { get; set; } = true;
     public bool ShowBadges { get; set; } = true;
+    public bool WindowPreviews { get; set; } = true;
+    public int PreviewDelayMs { get; set; } = 450;
+    public double PreviewWidth { get; set; } = 200;
     public bool BadgeFromTitle { get; set; } = true;
     public MonitorMode Monitors { get; set; } = MonitorMode.All;
     public List<PinnedItem> Pinned { get; set; } = new();
@@ -73,6 +84,14 @@ public class MenuBarSettings
     public bool ShowAppMenus { get; set; } = true;
     public bool UseUIAutomation { get; set; } = true;
     public bool BoldAppName { get; set; } = true;
+    /// <summary>transparent (macOS 26) | glass | dock | solid | theme</summary>
+    public string Style { get; set; } = "transparent";
+    public double Opacity { get; set; } = 1.0;
+    /// <summary>auto | light | dark</summary>
+    public string TextColor { get; set; } = "auto";
+    /// <summary>circle | flower | custom</summary>
+    public string LogoStyle { get; set; } = "circle";
+    public string? LogoImage { get; set; }
     public MonitorMode Monitors { get; set; } = MonitorMode.All;
     public List<string> HiddenTrayIcons { get; set; } = new() { "explorer.exe|1225" };
 }

@@ -18,6 +18,11 @@ public sealed class TrayIcon
     public string ExeName { get; set; } = "";
     public long Order { get; set; }
 
+    /// <summary>Icon hệ thống của Explorer trùng với chỉ báo riêng của Thanh Menu (âm lượng, pin, mạng).</summary>
+    public bool IsSystemDuplicate =>
+        ExeName.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase) && (UID == 100 || UID == 1225 || UID == 1226 ||
+        System.Text.RegularExpressions.Regex.IsMatch(Tip, "(?i)volume|speaker|headphone|battery|loa|âm lượng|tai nghe|pin |pin:|network|internet|mạng"));
+
     public string PersistKey => ExeName.ToLowerInvariant() + "|" + (Guid?.ToString() ?? UID.ToString());
     public override string ToString() => $"{ExeName} [{Tip}] uid={UID} v={Version}";
 }

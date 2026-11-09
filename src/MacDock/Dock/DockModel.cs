@@ -186,7 +186,18 @@ public sealed class DockModel
         switch (item.Kind)
         {
             case DockItemKind.Launchpad:
-                return OverrideIcon(item) ?? Glyphs.Launchpad;
+            {
+                var cfg = Config.Current.Dock;
+                string key = cfg.LaunchpadIcon + "|" + cfg.LaunchpadImage;
+                if (item.Icon != null && item.Args == key) return item.Icon;
+                ImageSource? lp = null;
+                if (cfg.LaunchpadIcon == "custom" && cfg.LaunchpadImage != null && File.Exists(cfg.LaunchpadImage))
+                    lp = ShellIcons.LoadImageFile(cfg.LaunchpadImage, IconCache.IconPixelSize);
+                lp ??= OverrideIcon(item);
+                if (lp == null || cfg.LaunchpadIcon == "windows") lp = cfg.LaunchpadIcon == "windows" ? Glyphs.WindowsLogo : Glyphs.Launchpad;
+                item.Icon = lp; item.Args = key;
+                return lp;
+            }
             case DockItemKind.Trash:
                 return Glyphs.Trash(item.TrashFull);
             case DockItemKind.Separator:
@@ -315,6 +326,18 @@ public sealed class DockModel
             else newPins.Add(new PinnedItem { Kind = it.Aumid != null ? "aumid" : it.PinKind, Path = it.Aumid ?? it.ExePath ?? "", Args = it.Args });
         }
         Config.Current.Dock.Pinned = newPins;
+        Config.Touch("pins");
+    }
+
+    /// <summary>Ghim một ứng dụng chọn từ danh sách đã cài.</summary>
+    public void PinInstalled(InstalledApp a)
+    {
+        var pins = Config.Current.Dock.Pinned;
+        PinnedItem p = a.ExePath != null && File.Exists(a.ExePath)
+            ? new PinnedItem { Kind = "exe", Path = a.ExePath, Name = a.Name }
+            : new PinnedItem { Kind = "aumid", Path = a.AppsFolderPath, Name = a.Name };
+        if (pins.Any(x => x.Key == p.Key)) return;
+        pins.Add(p);
         Config.Touch("pins");
     }
 
@@ -535,6 +558,7 @@ public sealed class DockModel
         }
         m.Items.Add(theme);
         m.Items.Add(new Separator());
+        m.Items.Add(Mi("Thêm ứng dụng vào Dock…", () => new AppPickerWindow { WindowStartupLocation = WindowStartupLocation.CenterScreen }.Show()));
         m.Items.Add(Mi("Cài đặt Dock…", () => App.Instance.ShowSettings("dock")));
         m.Items.Add(Mi("Thoát MacDock", () => App.Instance.Quit()));
     }

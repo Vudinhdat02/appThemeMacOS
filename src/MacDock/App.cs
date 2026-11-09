@@ -66,6 +66,7 @@ public sealed class App : Application
         IconCache.Init(Dispatcher);
 
         CreateMessageWindow();
+        MediaKeys.Apply(Dispatcher);
         WindowTracker.Instance.Start();
         StatusService.Instance.Start(Dispatcher);
         DockModel.Instance.Start();
@@ -162,6 +163,8 @@ public sealed class App : Application
             case Native.WM_SETTINGCHANGE:
                 string? area = lParam != IntPtr.Zero ? Marshal.PtrToStringUni(lParam) : null;
                 if (area == "ImmersiveColorSet") Dispatcher.BeginInvoke(() => ThemeManager.Apply(false));
+                if (wParam.ToInt64() == 0x14 /* SPI_SETDESKWALLPAPER */)
+                    Dispatcher.BeginInvoke(() => { Wallpaper.Invalidate(); foreach (var b in _bars) { b.ApplyTheme(); b.RebuildLeft(); b.RebuildRight(); } });
                 if (wParam.ToInt64() == 0x2F /* SPI_SETWORKAREA */ || area == "TraySettings") ScheduleDisplayRebuild();
                 break;
             case Native.WM_POWERBROADCAST:
@@ -182,7 +185,7 @@ public sealed class App : Application
         if (g.Watchdog) Program.StartWatchdog();
         ApplyTaskbar();
         BuildWindows();
-        _maintenance = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _maintenance = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _maintenance.Tick += (_, _) => Maintenance();
         _maintenance.Start();
         if (Config.Current.Performance.TrimMemory)
@@ -309,6 +312,7 @@ public sealed class App : Application
         switch (section)
         {
             case "general":
+                MediaKeys.Apply(Dispatcher);
                 Autostart.Apply(Config.Current.General.AutoStart);
                 ApplyTaskbar();
                 RelayoutAll();
@@ -326,7 +330,7 @@ public sealed class App : Application
                 else
                 {
                     if (Config.Current.General.HideTaskbar && Config.Current.MenuBar.ShowTray && !TrayService.Instance.Running) TrayService.Instance.Start(Dispatcher);
-                    foreach (var b in _bars) { b.LayoutWindow(); b.RebuildLeft(); b.RebuildRight(); }
+                    foreach (var b in _bars) { b.ApplyTheme(); b.LayoutWindow(); b.RebuildLeft(); b.RebuildRight(); }
                     foreach (var d in _docks) d.LayoutWindow();
                 }
                 break;
@@ -378,6 +382,12 @@ public sealed class App : Application
                 case 14: Log.Info("Tray icons: " + string.Join(" ; ", TrayService.Instance.Icons.Select(i => i.ToString()))); break;
                 case 15: Config.Current.Dock.Edge = (DockEdge)lo; Config.Touch("dock"); break;
                 case 17: ExportShots(lo); break;
+                case 18: AboutPcWindow.ShowSingle(); foreach (Window w in Windows) if (w is GlassWindow) w.Topmost = true; break;
+                case 19: new WelcomeWindow(true) { Topmost = true }.Show(); break;
+                case 20: foreach (Window w in Windows) if (w is GlassWindow) w.Close(); break;
+                case 21: OsdWindow.ShowLevel(lo == 1 ? OsdKind.Brightness : OsdKind.Volume, hi / 100.0, false); break;
+                case 22: AudioVolume.Instance.Level = lo / 100f; break;
+                case 23: foreach (Window w in Windows) if (w is WelcomeWindow ww) ww.TestGo(lo); break;
                 case 16: if (_settings != null) _settings.WindowState = lo == 1 ? WindowState.Maximized : WindowState.Normal; break;
             }
         }
@@ -516,7 +526,12 @@ public sealed class App : Application
     public static void EmergencyCleanup()
     {
         if (Interlocked.Exchange(ref _cleanedUp, 1) == 1) return;
+        try { MediaKeys.Stop(); } catch { }
         try { TrayService.Instance.Stop(); } catch { }
-        try { TaskbarController.Restore(); } catch { }
+        // Khôi phục trên luồng riêng để không treo khi Explorer phản hồi chậm; nếu quá 4 giây thì watchdog sẽ làm nốt
+        if (Application.Current?.Dispatcher.CheckAccess() == true) TaskbarController.PrepareRestoreOnUiThread();
+        var th = new Thread(() => { try { TaskbarController.Restore(); } catch { } }) { IsBackground = true };
+        th.Start();
+        th.Join(4000);
     }
 }
