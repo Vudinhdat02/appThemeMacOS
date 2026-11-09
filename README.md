@@ -28,15 +28,22 @@ Thùng rác, Wi-Fi, pin…) đều tự vẽ bằng vector.
 - Kéo thả: sắp xếp icon, kéo ra ngoài để gỡ; kéo `.exe` / `.lnk` / thư mục vào để ghim; kéo file lên app để mở bằng app đó;
   kéo file vào Thùng rác để xoá (vào Thùng rác của Windows, có thể hoàn tác).
 - Launchpad (mở Start) ở đầu, vạch ngăn + Thùng rác ở cuối.
-- Vị trí dưới / trái / phải, tự động ẩn với độ trễ hiện/ẩn, chừa chỗ để cửa sổ phóng to không che Dock.
+- Xem trước cửa sổ khi rê chuột lên app đang chạy (ảnh thu nhỏ trực tiếp, bấm để chuyển, nút × để đóng).
+- Thêm ứng dụng bằng cửa sổ chọn app đã cài (có tìm kiếm), hoặc kéo thả; quản lý danh sách ghim trong Cài đặt.
+- Icon Launchpad chọn được: lưới màu, logo Windows 11 hoặc ảnh tự chọn.
+- Vị trí dưới / trái / phải, tự động ẩn thông minh (chỉ ẩn khi có cửa sổ che Dock), chừa chỗ để cửa sổ phóng to không che Dock.
 - Nhiều màn hình; tự ẩn khi có ứng dụng toàn màn hình (game, video).
 
 ### Thanh Menu
-- Logo riêng mở menu hệ thống: Giới thiệu máy này, Cài đặt Windows, Cài đặt MacDock, Task Manager, Ngủ, Khởi động lại, Tắt máy, Khoá, Đăng xuất.
+- Nền trong suốt kiểu macOS 26 (màu chữ tự chọn theo hình nền), kính mờ, đồng bộ với Dock hoặc màu đặc.
+- Logo hình tròn (đổi được, kể cả ảnh tự chọn) mở menu hệ thống: Giới thiệu máy này, Cài đặt Windows, Cài đặt MacDock, Task Manager, Ngủ, Khởi động lại, Tắt máy, Khoá, Đăng xuất.
 - Tên ứng dụng đang dùng (in đậm) và **menu thật** của ứng dụng: menu Win32 (`GetMenu`) hoặc UI Automation; nếu app không có thì dùng menu chung (Tệp, Sửa, Xem, Cửa sổ, Trợ giúp).
 - Bên phải: **icon khay hệ thống** (Unikey/EVKey, Zalo, OneDrive, PowerToys… — bấm trái/phải/đúp đều hoạt động), bộ gõ/ngôn ngữ,
-  pin, Wi-Fi, âm lượng (thanh trượt, lăn chuột), Trung tâm điều khiển (Wi-Fi, Bluetooth, độ sáng, âm lượng, chế độ tối),
+  pin, Wi-Fi (danh sách mạng, kết nối ngay trong popup), âm lượng (thanh trượt, lăn chuột), Trung tâm điều khiển (Wi-Fi, Bluetooth, độ sáng, âm lượng, chế độ tối),
   thông báo (Win+N), đồng hồ định dạng tuỳ chỉnh (bấm để mở lịch nhỏ).
+
+### Âm lượng & độ sáng
+- Bấm phím âm lượng/độ sáng hiện bảng kính kiểu macOS 26 thay cho bảng của Windows (chọn được trong Cài đặt).
 
 ### Cài đặt, theme, hệ thống
 - Cửa sổ Cài đặt tiếng Việt kiểu System Settings, xem trước trực tiếp, khôi phục mặc định từng trang hoặc toàn bộ.
@@ -46,6 +53,7 @@ Thùng rác, Wi-Fi, pin…) đều tự vẽ bằng vector.
   nhập/xuất gói `.macdocktheme` (zip). 6 theme dựng sẵn: Sonoma, Nửa đêm, Kính trong, Hoàng hôn, Rừng thông, Tối giản.
   Đổi nhanh từ menu chuột phải của Dock.
 - Tự khởi động cùng Windows (bật mặc định), màn hình chào lần đầu, chỉ một tiến trình (chạy lại → mở Cài đặt).
+- "Giới thiệu máy này" và màn hình chào kiểu macOS 26.
 - Tự chuyển cấu hình từ MacDock 0.1.
 
 ## Cài đặt
@@ -117,6 +125,7 @@ thay vì quét liên tục.
   trong suốt quanh Dock.
 - Đã kiểm thử trên một màn hình; mã hỗ trợ nhiều màn hình và DPI khác nhau nhưng chưa thử trên máy nhiều màn hình thật.
 - Ứng dụng chạy với quyền admin có thể không nhận được thao tác từ MacDock (giới hạn UIPI của Windows) nếu MacDock chạy quyền thường.
+- Phím độ sáng do phần cứng xử lý: MacDock hiện bảng của mình nhưng Windows có thể vẫn hiện bảng mặc định.
 - Chưa có: Launchpad toàn màn hình, Spotlight, góc nóng (dự kiến bản sau). Không làm nút cửa sổ đỏ/vàng/xanh.
 
 ## Giấy phép

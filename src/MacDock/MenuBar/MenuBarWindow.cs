@@ -122,25 +122,89 @@ public sealed class MenuBarWindow : Window
         finally { _inLayout = false; }
     }
 
+    Brush Fg = Brushes.Black, Hl = Brushes.LightGray;
+
+    static Brush Frz(Brush b) { b.Freeze(); return b; }
+    static Brush WithOpacity(Brush b, double op)
+    {
+        if (op >= 0.999) return b;
+        var c = b.Clone(); c.Opacity = Math.Clamp(op, 0.02, 1); c.Freeze(); return c;
+    }
+
     public void ApplyTheme()
     {
         var t = T;
         FontFamily = t.Font;
         FontSize = t.FontSize;
-        Foreground = t.MenuBarForeground;
-        _bg.Background = t.MenuBarBackground;
+        string style = Cfg.Style;
+        double op = Math.Clamp(Cfg.Opacity, 0, 1.5);
+        Brush bg;
+        int accent = 0;
+        bool? darkText = Cfg.TextColor switch { "dark" => true, "light" => false, _ => null };
+        switch (style)
+        {
+            case "transparent":
+                darkText ??= Wallpaper.TopLuminance() > 0.58;
+                byte a = (byte)Math.Clamp(40 * op, 1, 255);
+                bg = Frz(new SolidColorBrush(darkText.Value ? Color.FromArgb(a, 255, 255, 255) : Color.FromArgb(a, 0, 0, 0)));
+                break;
+            case "dock":
+                bg = WithOpacity(t.DockBackground, op);
+                accent = 3;
+                darkText ??= !t.IsDark;
+                break;
+            case "solid":
+                var sc = t.MenuBarColor;
+                bg = Frz(new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(255 * op, 1, 255), sc.R, sc.G, sc.B)));
+                darkText ??= !t.IsDark;
+                break;
+            case "glass":
+                bg = WithOpacity(t.MenuBarBackground, op * 0.75);
+                accent = 4;
+                darkText ??= !t.IsDark;
+                break;
+            default:
+                bg = WithOpacity(t.MenuBarBackground, op);
+                accent = t.MenuBarMaterial switch { "acrylic" => 4, "blur" => 3, _ => 0 };
+                darkText ??= !t.IsDark;
+                break;
+        }
+        if (Cfg.TextColor == "auto" && style != "transparent") Fg = t.MenuBarForeground;
+        else Fg = Frz(new SolidColorBrush(darkText.Value ? Color.FromRgb(0x12, 0x12, 0x14) : Colors.White));
+        var fc = Fg is SolidColorBrush sb ? sb.Color : Colors.Black;
+        Hl = Frz(new SolidColorBrush(Color.FromArgb(0x2E, fc.R, fc.G, fc.B)));
+        Foreground = Fg;
+        _bg.Background = bg;
         _bg.BorderBrush = t.Separator;
-        _bg.BorderThickness = new Thickness(0, 0, 0, t.BorderThickness > 0 ? 0.5 : 0);
+        _bg.BorderThickness = new Thickness(0, 0, 0, style == "transparent" || t.BorderThickness <= 0 ? 0 : 0.5);
         if (Hwnd != IntPtr.Zero)
         {
             var c = t.MenuBarColor;
             uint tint = (uint)(0x18 << 24) | ((uint)c.B << 16) | ((uint)c.G << 8) | c.R;
-            switch (t.MenuBarMaterial)
-            {
-                case "acrylic": Native.SetAccent(Hwnd, 4, tint); break;
-                case "blur": Native.SetAccent(Hwnd, 3, 0); break;
-                default: Native.SetAccent(Hwnd, 0, 0); break;
-            }
+            Native.SetAccent(Hwnd, accent, accent == 4 ? tint : 0);
+        }
+    }
+
+    FrameworkElement LogoElement()
+    {
+        double s = 15;
+        switch (Cfg.LogoStyle)
+        {
+            case "flower":
+                return Glyphs.Icon(Glyphs.Logo, Fg, s);
+            case "custom" when Cfg.LogoImage != null && File.Exists(Cfg.LogoImage):
+                var img = ShellIcons.LoadImageFile(Cfg.LogoImage, 64);
+                if (img != null)
+                    return new System.Windows.Shapes.Ellipse { Width = s + 1, Height = s + 1, Fill = new ImageBrush(img) { Stretch = Stretch.UniformToFill }, Stroke = Fg, StrokeThickness = 0.8 };
+                goto default;
+            default:
+                // hình tròn đặc, khoét logo bông hoa ở giữa
+                var circle = new EllipseGeometry(new Point(8, 8), 7.5, 7.5);
+                var flower = Glyphs.Logo.Clone();
+                flower.Transform = new ScaleTransform(0.62, 0.62, 8, 8);
+                var g = Geometry.Combine(circle, flower, GeometryCombineMode.Exclude, null);
+                g.Freeze();
+                return Glyphs.Icon(g, Fg, s);
         }
     }
 
@@ -180,7 +244,7 @@ public sealed class MenuBarWindow : Window
         };
         if (content is FrameworkElement fe) { fe.VerticalAlignment = VerticalAlignment.Center; }
         if (tooltip != null) b.ToolTip = tooltip;
-        b.MouseEnter += (_, _) => { if (_openOwner != b) b.Background = T.MenuHighlight; };
+        b.MouseEnter += (_, _) => { if (_openOwner != b) b.Background = Hl; };
         b.MouseLeave += (_, _) => { if (_openOwner != b) b.Background = Brushes.Transparent; };
         if (onClick != null)
             b.MouseLeftButtonUp += (_, e) => { e.Handled = true; onClick(b); };
@@ -192,7 +256,7 @@ public sealed class MenuBarWindow : Window
         Text = s,
         FontWeight = bold ? FontWeights.Bold : FontWeights.Normal,
         VerticalAlignment = VerticalAlignment.Center,
-        Foreground = T.MenuBarForeground,
+        Foreground = Fg,
     };
 
     // ------------------------------------------------------------------ bên trái
@@ -205,7 +269,7 @@ public sealed class MenuBarWindow : Window
         _topButtons.Clear();
         int gen = ++_menuGeneration;
 
-        var logo = Btn(Glyphs.Icon(Glyphs.Logo, T.MenuBarForeground, 15), null, 9);
+        var logo = Btn(LogoElement(), null, 9);
         AddTop(logo, () => MenuBarMenus.SystemMenu());
         _left.Children.Add(logo);
 
@@ -279,7 +343,7 @@ public sealed class MenuBarWindow : Window
         if (cm == null) return;
         _openMenu = cm;
         _openOwner = owner;
-        if (owner is Border b) b.Background = T.MenuHighlight;
+        if (owner is Border b) b.Background = Hl;
         cm.PlacementTarget = owner;
         cm.Placement = PlacementMode.Bottom;
         cm.VerticalOffset = 3;
@@ -326,12 +390,17 @@ public sealed class MenuBarWindow : Window
 
     TextBlock? _clockText;
 
+    bool _rightPending;
+
     public void RebuildRight()
     {
         Diag.StatusChanges++;
+        // Đang mở popup/menu: không dựng lại (phần tử neo bị thay mới làm popup nhảy sang trái)
+        if (_popup?.IsOpen == true || _openMenu != null) { _rightPending = true; return; }
+        _rightPending = false;
         _right.Children.Clear();
         var st = StatusService.Instance;
-        var fg = T.MenuBarForeground;
+        var fg = Fg;
 
         if (Cfg.ShowTray && TrayService.Instance.Running)
         {
@@ -401,7 +470,7 @@ public sealed class MenuBarWindow : Window
         Diag.TrayChanges++;
         // Nếu danh sách icon không đổi, chỉ cập nhật ảnh/tooltip (icon động) — rẻ hơn nhiều
         var hiddenSet = new HashSet<string>(Cfg.HiddenTrayIcons, StringComparer.OrdinalIgnoreCase);
-        var visible = TrayService.Instance.Icons.OrderBy(i => i.Order).Where(i => !i.Hidden && i.Icon != null && !hiddenSet.Contains(i.PersistKey)).ToList();
+        var visible = TrayService.Instance.Icons.OrderBy(i => i.Order).Where(i => !i.Hidden && i.Icon != null && !i.IsSystemDuplicate && !hiddenSet.Contains(i.PersistKey)).ToList();
         if (Cfg.ShowTray && visible.Count == _trayEls.Count && visible.All(_trayEls.ContainsKey))
         {
             foreach (var ic in visible)
@@ -419,7 +488,7 @@ public sealed class MenuBarWindow : Window
         var hidden = new HashSet<string>(Cfg.HiddenTrayIcons, StringComparer.OrdinalIgnoreCase);
         foreach (var icon in TrayService.Instance.Icons.OrderBy(i => i.Order))
         {
-            if (icon.Hidden || icon.Icon == null || hidden.Contains(icon.PersistKey)) continue;
+            if (icon.Hidden || icon.Icon == null || icon.IsSystemDuplicate || hidden.Contains(icon.PersistKey)) continue;
             var ic = icon;
             var img = new Image { Source = icon.Icon, Width = 16, Height = 16, Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Center };
             RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
@@ -429,7 +498,7 @@ public sealed class MenuBarWindow : Window
                 CornerRadius = new CornerRadius(5), Background = Brushes.Transparent,
                 ToolTip = string.IsNullOrWhiteSpace(icon.Tip) ? null : icon.Tip
             };
-            b.MouseEnter += (_, _) => { b.Background = T.MenuHighlight; SendTray(ic, TrayService.Click.Hover); };
+            b.MouseEnter += (_, _) => { b.Background = Hl; SendTray(ic, TrayService.Click.Hover); };
             b.MouseLeave += (_, _) => b.Background = Brushes.Transparent;
             b.MouseLeftButtonDown += (_, e) => { if (e.ClickCount == 2) { SendTray(ic, TrayService.Click.Double); e.Handled = true; } };
             b.MouseLeftButtonUp += (_, e) => { e.Handled = true; CloseMenus(); SendTray(ic, TrayService.Click.Left); };
@@ -507,16 +576,32 @@ public sealed class MenuBarWindow : Window
         {
             Child = border,
             PlacementTarget = owner,
-            Placement = PlacementMode.Bottom,
             AllowsTransparency = true,
             StaysOpen = false,
             PopupAnimation = App.EffectsOff ? PopupAnimation.None : PopupAnimation.Fade,
-            HorizontalOffset = -12,
-            VerticalOffset = -8,
         };
-        if (owner is Border ob) { ob.Background = T.MenuHighlight; popup.Closed += (_, _) => ob.Background = Brushes.Transparent; }
+        // Neo theo toạ độ màn hình cố định (DIP): căn mép phải popup với mép phải nút, ngay dưới Thanh Menu
+        try
+        {
+            double sc = Monitor.Scale;
+            var tl = owner.PointToScreen(new Point(0, 0));
+            border.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            double pw = border.DesiredSize.Width;
+            double right = tl.X / sc + owner.ActualWidth + 12;
+            double left = Math.Max(Monitor.Bounds.Left / sc, Math.Min(right - pw, Monitor.Bounds.Right / sc - pw));
+            popup.Placement = PlacementMode.Absolute;
+            popup.HorizontalOffset = left;
+            popup.VerticalOffset = (Monitor.Bounds.Top / sc) + ActualHeight - 8;
+        }
+        catch { popup.Placement = PlacementMode.Bottom; }
+        if (owner is Border ob) { ob.Background = Hl; popup.Closed += (_, _) => ob.Background = Brushes.Transparent; }
         popup.Opened += (_, _) => Log.Debug("Popup mở");
-        popup.Closed += (_, _) => { Log.Debug("Popup đóng"); if (_popup == popup) _popup = null; };
+        popup.Closed += (_, _) =>
+        {
+            Log.Debug("Popup đóng");
+            if (_popup == popup) _popup = null;
+            if (_rightPending) Dispatcher.BeginInvoke(RebuildRight, DispatcherPriority.Background);
+        };
         _popup = popup;
         popup.IsOpen = true;
         MenuBarPopups.CloseRequested = () => popup.IsOpen = false;

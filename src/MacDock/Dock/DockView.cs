@@ -113,8 +113,8 @@ public sealed class DockView : FrameworkElement
         if (Cfg.Shadow && t != null && t.ShadowOpacity > 0)
             Effect = new DropShadowEffect { BlurRadius = t.ShadowBlur, Opacity = t.ShadowOpacity, ShadowDepth = 3, Direction = Edge switch { DockEdge.Left => 0, DockEdge.Right => 180, _ => 270 }, Color = Colors.Black, RenderingBias = RenderingBias.Performance };
         else Effect = null;
-        _hideTarget = Cfg.AutoHide ? 1 : 0;
-        if (!Cfg.AutoHide) _hide = 0;
+        _hideTarget = EffectiveAutoHide ? 1 : 0;
+        if (!Cfg.AutoHide) { _hide = 0; if (_appliedOffset != 0) { _appliedOffset = 0; _win.SetHideOffset(0); } }
         InvalidateVisual();
         Wake();
     }
@@ -145,7 +145,8 @@ public sealed class DockView : FrameworkElement
         if (!IsVisible) return;
         if (_pausedHover) { IdleCheckHover(); return; }
         if (ReadMouse(out double u, out double v) && WantsHover(u, v, false)) Wake();
-        else if (Cfg.AutoHide && _hide < 0.99 && !_hover) Wake();
+        else if (EffectiveAutoHide && _hide < 0.99 && !_hover) Wake();
+        else if (!EffectiveAutoHide && _hide > 0.001) Wake();
         else if (_slots.Any(s => s.Item.BounceStart >= 0)) Wake();
     }
 
@@ -162,14 +163,15 @@ public sealed class DockView : FrameworkElement
         try { p = _win.PointFromScreen(new Point(pt.X, pt.Y)); } catch { return false; }
         if (p.X < -2 || p.Y < -2 || p.X > ActualWidth + 2 || p.Y > ActualHeight + 2) { u = v = -1000; return true; }
         (u, v) = ToUV(p);
+        v -= _appliedOffset; // cửa sổ đã dịch ra ngoài khi tự ẩn: tính v từ mép màn hình
         return true;
     }
 
     bool WantsHover(double u, double v, bool already)
     {
         if (u < -999) return false;
-        double hiddenShift = _hide * (Margin0 + PlateThick + 4);
-        if (Cfg.AutoHide && _hide > 0.5)
+        double hiddenShift = _appliedOffset;
+        if (EffectiveAutoHide && _hide > 0.5)
             return v >= -1 && v <= 3 && u >= _plateStart - 30 && u <= _plateEnd + 30;
         double vmax = already ? Margin0 + Pad + S * CurrentMaxScale() + 6 : Margin0 + PlateThick;
         return v >= -1 && v <= vmax - hiddenShift && u >= _plateStart - 2 && u <= _plateEnd + 2;
@@ -193,8 +195,11 @@ public sealed class DockView : FrameworkElement
         if (_menuOpen) hover = _hover; // giữ nguyên khi menu mở
         else { _mouseU = u; _mouseV = v; }
 
-        // tự ẩn
-        if (Cfg.AutoHide)
+        // tự ẩn (thông minh: chỉ ẩn khi có cửa sổ che Dock, nếu bật)
+        bool autoHide = EffectiveAutoHide;
+        bool wasHover = _hover;
+        double prevHide = _hide;
+        if (autoHide)
         {
             if (hover)
             {
@@ -231,11 +236,16 @@ public sealed class DockView : FrameworkElement
             animating = true;
         }
 
+        // ẩn/hiện bằng cách dịch cửa sổ (không vẽ lại cả Dock mỗi khung hình)
+        double offset = _hide * HideDistance;
+        if (Math.Abs(offset - _appliedOffset) > 0.01) { _appliedOffset = offset; _win.SetHideOffset(offset); }
+
         ComputeTargets();
+        bool scaling = false;
         foreach (var s in _st.Values)
         {
             double d = s.Target - s.Scale;
-            if (Math.Abs(d) > 0.001) { s.Scale += d * k; if (Math.Abs(s.Target - s.Scale) < 0.002) s.Scale = s.Target; animating = true; }
+            if (Math.Abs(d) > 0.001) { s.Scale += d * k; if (Math.Abs(s.Target - s.Scale) < 0.002) s.Scale = s.Target; animating = true; scaling = true; }
         }
 
         bool bouncing = false;
@@ -245,9 +255,10 @@ public sealed class DockView : FrameworkElement
             if (a) bouncing = true;
         }
 
-        InvalidateVisual();
+        bool moved = _hover && (Math.Abs(u - _stillU) > 0.01 || Math.Abs(v - _stillV) > 0.01);
+        if (scaling || bouncing || busy || moved || wasHover != _hover || (prevHide >= 0.999) != (_hide >= 0.999)) InvalidateVisual();
 
-        if (!animating && !bouncing && !_hover && !busy && (!Cfg.AutoHide || _hideTarget > 0.5) && _pressItem == null)
+        if (!animating && !bouncing && !_hover && !busy && (!autoHide || _hideTarget > 0.5) && _pressItem == null)
             Sleep();
         else if (!animating && !bouncing && _hover && !busy && _pressItem == null && Math.Abs(u - _stillU) < 0.01 && Math.Abs(v - _stillV) < 0.01)
         {
@@ -256,6 +267,58 @@ public sealed class DockView : FrameworkElement
         }
         else _stillFrames = 0;
         _stillU = u; _stillV = v;
+        CheckPreview();
+    }
+
+    DockItem? _previewCandidate;
+    double _hoverSince;
+
+    void CheckPreview()
+    {
+        var it = _hover ? _hoverItem : null;
+        if (it != _previewCandidate) { _previewCandidate = it; _hoverSince = DockModel.Now; }
+        if (it == null || it.Kind != DockItemKind.App || !it.Running || _dragging || _menuOpen || _pressItem != null || !Cfg.WindowPreviews) return;
+        if (PreviewWindow.IsOpenFor(it)) return;
+        if (PreviewWindow.AnyOpen || (DockModel.Now - _hoverSince) * 1000 >= Cfg.PreviewDelayMs)
+        {
+            var s = _slots.FirstOrDefault(x => x.Item == it);
+            if (s.Item == null) return;
+            var r = R(s.Center - s.Size / 2, Margin0 + Pad + s.Bounce, s.Size, s.Size);
+            try
+            {
+                var a = PointToScreen(r.TopLeft); var b = PointToScreen(r.BottomRight);
+                PreviewWindow.ShowFor(_win, it, new Rect(a, b));
+                InvalidateVisual();
+            }
+            catch { }
+        }
+    }
+
+    double _appliedOffset;
+    bool _covered;
+    double HideDistance => Margin0 + PlateThick + 6;
+    bool EffectiveAutoHide => Cfg.AutoHide && (_covered || !Cfg.AutoHideOnlyWhenCovered);
+
+    /// <summary>Có cửa sổ nào che vùng Dock không (do DockWindow kiểm tra định kỳ khi bật tự ẩn).</summary>
+    public void SetCovered(bool covered)
+    {
+        if (covered == _covered) return;
+        _covered = covered;
+        _leaveTime = -1;
+        Wake();
+    }
+
+    /// <summary>Vùng tấm nền Dock trên màn hình (pixel), dùng để kiểm tra cửa sổ che.</summary>
+    public Rect PlateScreenRect()
+    {
+        try
+        {
+            var r = R(_plateStart, 0, _plateEnd - _plateStart, Margin0 + PlateThick + 2);
+            var a = PointToScreen(r.TopLeft); var b = PointToScreen(r.BottomRight);
+            // trừ phần đã dịch ra ngoài khi đang ẩn
+            return new Rect(a, b);
+        }
+        catch { return Rect.Empty; }
     }
 
     double _stillU, _stillV;
@@ -272,6 +335,7 @@ public sealed class DockView : FrameworkElement
     public void IdleCheckHover()
     {
         if (!_pausedHover) return;
+        CheckPreview();
         if (ReadMouse(out double u, out double v) && (Math.Abs(u - _stillU) > 0.01 || Math.Abs(v - _stillV) > 0.01 || !WantsHover(u, v, true)))
         {
             _pausedHover = false;
@@ -403,11 +467,11 @@ public sealed class DockView : FrameworkElement
         Diag.Renders++;
         double now = DockModel.Now;
         Layout(now);
-        double shift = _hide * (Margin0 + PlateThick + 6);
+        double shift = 0;
 
-        // dải kích hoạt khi tự ẩn
+        // dải kích hoạt ở mép màn hình khi tự ẩn (cửa sổ đã dịch ra ngoài _appliedOffset)
         if (Cfg.AutoHide)
-            dc.DrawRectangle(HitBrush, null, R(_plateStart - 30, 0, _plateEnd - _plateStart + 60, 3));
+            dc.DrawRectangle(HitBrush, null, R(_plateStart - 30, _appliedOffset, _plateEnd - _plateStart + 60, 3));
 
         if (_hide >= 0.999) return;
 
@@ -469,7 +533,7 @@ public sealed class DockView : FrameworkElement
         }
 
         // nhãn tên
-        if (Cfg.ShowLabels && _hoverItem != null && !_menuOpen && _hoverItem.Kind != DockItemKind.Separator)
+        if (Cfg.ShowLabels && _hoverItem != null && !_menuOpen && _hoverItem.Kind != DockItemKind.Separator && !PreviewWindow.IsOpenFor(_hoverItem))
         {
             var s = _slots.First(x => x.Item == _hoverItem);
             var rect = R(s.Center - s.Size / 2, v0 + Pad + s.Bounce, s.Size, s.Size);
@@ -595,6 +659,7 @@ public sealed class DockView : FrameworkElement
     {
         var item = _pressItem;
         bool wasDrag = _dragging;
+        PreviewWindow.HideNow();
         if (_dragging) EndDrag(true);
         _pressItem = null;
         if (IsMouseCaptured) ReleaseMouseCapture();
@@ -640,6 +705,7 @@ public sealed class DockView : FrameworkElement
 
     public void ShowMenu(DockItem item)
     {
+        PreviewWindow.HideNow();
         var menu = DockModel.Instance.BuildMenu(item);
         menu.PlacementTarget = this;
         var s = _slots.FirstOrDefault(x => x.Item == item);

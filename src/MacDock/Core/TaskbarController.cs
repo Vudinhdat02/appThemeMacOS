@@ -70,6 +70,39 @@ public static class TaskbarController
         Native.SHAppBarMessage(Native.ABM_SETSTATE, ref abd);
     }
 
+    static IntPtr _showHook;
+    static uint _hookPid;
+    static WinEventDelegate? _showProc;
+
+    /// <summary>Theo dõi sự kiện hiện cửa sổ của riêng tiến trình Explorer: taskbar vừa hiện là ẩn lại ngay.</summary>
+    static void EnsureShowHook()
+    {
+        try
+        {
+            var tray = ExplorerTray();
+            if (tray == IntPtr.Zero) return;
+            Native.GetWindowThreadProcessId(tray, out uint pid);
+            if (pid == _hookPid && _showHook != IntPtr.Zero) return;
+            RemoveShowHook();
+            _showProc ??= (hook, ev, hwnd, idObject, idChild, thread, time) =>
+            {
+                if (idObject != Native.OBJID_WINDOW || _state?.Hidden != true) return;
+                string cls = Native.GetClass(hwnd);
+                if (cls is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd") Native.ShowWindow(hwnd, Native.SW_HIDE);
+            };
+            _showHook = Native.SetWinEventHook(Native.EVENT_OBJECT_SHOW, Native.EVENT_OBJECT_SHOW, IntPtr.Zero, _showProc, pid, 0, Native.WINEVENT_OUTOFCONTEXT);
+            _hookPid = pid;
+        }
+        catch (Exception ex) { Log.Warn("Hook taskbar: " + ex.Message); }
+    }
+
+    public static void PrepareRestoreOnUiThread() => RemoveShowHook();
+
+    static void RemoveShowHook()
+    {
+        if (_showHook != IntPtr.Zero) { Native.UnhookWinEvent(_showHook); _showHook = IntPtr.Zero; _hookPid = 0; }
+    }
+
     public static void Hide()
     {
         lock (_lock)
@@ -88,6 +121,7 @@ public static class TaskbarController
                 }
                 foreach (var h in TrayWindows())
                     if (Native.IsWindowVisible(h)) Native.ShowWindow(h, Native.SW_HIDE);
+                EnsureShowHook();
             }
             catch (Exception ex) { Log.Error("Ẩn taskbar lỗi", ex); }
         }
@@ -102,6 +136,7 @@ public static class TaskbarController
             if ((GetState() & Native.ABS_AUTOHIDE) == 0) SetState(_state.OriginalState | Native.ABS_AUTOHIDE);
             foreach (var h in TrayWindows())
                 if (Native.IsWindowVisible(h)) Native.ShowWindow(h, Native.SW_HIDE);
+            if (System.Windows.Application.Current?.Dispatcher.CheckAccess() == true) EnsureShowHook();
         }
         catch { }
     }
@@ -114,6 +149,7 @@ public static class TaskbarController
             {
                 var s = _state ?? ReadFile();
                 if (s == null || !s.Hidden) return;
+                if (System.Windows.Application.Current?.Dispatcher.CheckAccess() == true) RemoveShowHook();
                 SetState(s.OriginalState);
                 foreach (var h in TrayWindows()) Native.ShowWindow(h, Native.SW_SHOWNA);
                 _state = null;

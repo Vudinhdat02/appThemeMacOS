@@ -1,5 +1,27 @@
 # Nhật ký thay đổi
 
+## [0.3.0] - 2026-11-10
+
+### Thêm
+- **Xem trước cửa sổ** khi rê chuột lên app đang chạy trên Dock: ảnh thu nhỏ trực tiếp (DWM), bấm để chuyển, nút × để đóng; chỉnh bật/tắt, độ trễ, kích thước.
+- **Wi-Fi ngay trong Thanh Menu**: bật/tắt, danh sách mạng (đã biết / khác), bấm để kết nối hoặc ngắt, hộp nhập mật khẩu riêng.
+- **Bảng âm lượng/độ sáng kiểu macOS 26** khi bấm phím trên bàn phím (góc trên bên phải hoặc giữa phía dưới); chọn giữa giao diện MacDock và mặc định của Windows.
+- **Giao diện Thanh Menu**: trong suốt kiểu macOS 26 (màu chữ tự chọn theo hình nền), kính mờ, đồng bộ với Dock, màu đặc; chỉnh độ đậm và màu chữ.
+- Logo góc trái hình tròn, đổi được (hình tròn / bông hoa / ảnh tự chọn cắt tròn).
+- Icon Launchpad chọn được: lưới màu, logo Windows 11 (vẽ vector) hoặc ảnh tự chọn.
+- **Thêm ứng dụng vào Dock**: cửa sổ chọn mọi app đã cài (kể cả app Store) có tìm kiếm; danh sách ghim trong Cài đặt với nút lên/xuống/gỡ; mục "Thêm ứng dụng vào Dock…" trong menu chuột phải của Dock.
+- "Giới thiệu máy này" và màn hình chào làm lại theo phong cách macOS 26 (cửa sổ kính bo góc).
+- Trang Giới thiệu có thông tin nhà phát triển, mã QR ủng hộ và các liên kết liên hệ.
+
+### Sửa
+- Tự ẩn Dock thông minh: chỉ ẩn khi có cửa sổ che vùng Dock; ở màn hình chính Dock luôn hiện (có thể tắt).
+- Dock hiện/ẩn mượt hơn: dịch cửa sổ thay vì vẽ lại cả Dock mỗi khung hình, độ trễ hiện mặc định 80 ms.
+- Taskbar gốc không còn thỉnh thoảng hiện lên: theo dõi sự kiện hiện cửa sổ của Explorer và ẩn lại ngay.
+- Popup trên Thanh Menu không còn nhảy sang trái khi đang thao tác.
+- Không còn icon âm lượng/pin trùng trong khay hệ thống.
+- Giảm vẽ lại khi rảnh (tiêu đề nhấp nháy, AppBar báo đổi vị trí qua lại).
+- Thoát MacDock không bị treo khi Explorer phản hồi chậm.
+
 ## [0.2.0] - 2026-11-09
 
 Viết lại toàn bộ, chạy thử thật trên Windows 11.

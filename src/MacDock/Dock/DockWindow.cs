@@ -91,6 +91,53 @@ public sealed class DockWindow : Window
 
     /// <summary>Tính vị trí cửa sổ (pixel vật lý) và chừa chỗ AppBar nếu cần.</summary>
     string _lastKey = "";
+    RECT _base;
+    double _offsetDip;
+    DispatcherTimer? _coverTimer;
+
+    (int, int) OffsetPx(double dip)
+    {
+        int d = (int)Math.Round(dip * Monitor.Scale);
+        return Config.Current.Dock.Edge switch { DockEdge.Left => (-d, 0), DockEdge.Right => (d, 0), _ => (0, d) };
+    }
+
+    /// <summary>Dịch cửa sổ ra ngoài mép màn hình (tự ẩn) — chỉ di chuyển, không vẽ lại.</summary>
+    public void SetHideOffset(double dip)
+    {
+        _offsetDip = dip;
+        if (Hwnd == IntPtr.Zero || _base.Width == 0) return;
+        var (ox, oy) = OffsetPx(dip);
+        Native.SetWindowPos(Hwnd, IntPtr.Zero, _base.Left + ox, _base.Top + oy, 0, 0, Native.SWP_NOACTIVATE | Native.SWP_NOZORDER | Native.SWP_NOSIZE);
+    }
+
+    /// <summary>Kiểm tra định kỳ (khi bật tự ẩn) xem có cửa sổ nào che vùng Dock.</summary>
+    void UpdateCoverTimer()
+    {
+        bool need = Config.Current.Dock.AutoHide && Config.Current.Dock.AutoHideOnlyWhenCovered;
+        if (need && _coverTimer == null)
+        {
+            _coverTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+            _coverTimer.Tick += (_, _) => View.SetCovered(IsDockCovered());
+            _coverTimer.Start();
+            View.SetCovered(IsDockCovered());
+        }
+        else if (!need && _coverTimer != null) { _coverTimer.Stop(); _coverTimer = null; }
+    }
+
+    bool IsDockCovered()
+    {
+        var pr = View.PlateScreenRect();
+        if (pr.IsEmpty) return false;
+        var (ox, oy) = OffsetPx(_offsetDip);
+        var band = new RECT((int)pr.Left - ox, (int)pr.Top - oy, (int)pr.Right - ox, (int)pr.Bottom - oy);
+        foreach (var w in WindowTracker.Instance.Windows)
+        {
+            if (w.Minimized || !Native.IsWindowVisible(w.Hwnd) || Native.IsIconic(w.Hwnd)) continue;
+            if (Native.DwmGetWindowAttribute(w.Hwnd, 9 /*EXTENDED_FRAME_BOUNDS*/, out RECT r, System.Runtime.InteropServices.Marshal.SizeOf<RECT>()) != 0 && !Native.GetWindowRect(w.Hwnd, out r)) continue;
+            if (r.Left < band.Right && r.Right > band.Left && r.Top < band.Bottom && r.Bottom > band.Top) return true;
+        }
+        return false;
+    }
 
     public void LayoutWindow(bool force = false)
     {
@@ -146,8 +193,11 @@ public sealed class DockWindow : Window
             _lastLayout = DateTime.Now;
             if (key == _lastKey && !force) return;
             _lastKey = key;
-            Native.SetWindowPos(Hwnd, IntPtr.Zero, x, y, w, h, Native.SWP_NOACTIVATE | Native.SWP_NOZORDER);
+            _base = new RECT(x, y, x + w, y + h);
+            var (ox, oy) = OffsetPx(_offsetDip);
+            Native.SetWindowPos(Hwnd, IntPtr.Zero, x + ox, y + oy, w, h, Native.SWP_NOACTIVATE | Native.SWP_NOZORDER);
             View.ApplySettings();
+            UpdateCoverTimer();
         }
         catch (Exception ex) { Log.Error("Dock layout lỗi", ex); }
         finally { _inLayout = false; }
@@ -170,6 +220,7 @@ public sealed class DockWindow : Window
     public void Shutdown()
     {
         _idle.Stop();
+        _coverTimer?.Stop();
         DockModel.Instance.Invalidated -= OnModelInvalidated;
         DockModel.Instance.ItemsChanged -= OnItemsChanged;
         try { _appBar?.Unregister(); } catch { }
