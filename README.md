@@ -15,7 +15,7 @@ Thùng rác, Wi-Fi, pin…) đều tự vẽ bằng vector.
 | Cài đặt Dock | Chọn giao diện | Lịch |
 |---|---|---|
 | ![Cài đặt Dock](docs/screenshots/cai-dat-dock.png) | ![Giao diện](docs/screenshots/cai-dat-giao-dien.png) | ![Lịch](docs/screenshots/lich.png) |
-*Ảnh chụp từ ứng dụng chạy thật trên Windows 11 (1920×1080, 125%).*
+
 
 ## Tính năng
 
