@@ -94,7 +94,7 @@ public static class PowerActions
 {
     static bool Confirm(string text)
     {
-        return MessageBox.Show(text, "MacDock", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+        return ConfirmDialog.Ask(text, "", L.T("Đồng ý"));
     }
 
     public static void Sleep() { try { Native.SetSuspendState(false, false, false); } catch { } }

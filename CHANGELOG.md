@@ -1,5 +1,24 @@
-# Nhật ký thay đổi
+# Nhật ký thay đổi / Changelog
 
+## [0.3.1] - 2026-11-10
+
+### English
+- **Fixed:** after signing in, maximized windows could cover the menu bar and the Dock (their reserved space was lost). MacDock's own AppBar requests now go straight to Explorer, it waits for Explorer at sign-in, and it repairs the reserved space and z-order automatically.
+- **Fixed:** the Shut Down / Restart / Log Out confirmation could open behind other windows, so the buttons seemed to do nothing. It now appears on top.
+- **Fixed:** Win+Space / Shift+Win+Space switch the input language even while the Windows taskbar is hidden (with a small language overlay).
+- **Fixed:** the Dock appears as soon as the pointer touches the screen edge anywhere, not only near the Dock.
+- **Faster sign-in:** starts via Task Scheduler (no Windows startup delay), waits until Explorer is ready, shows the Dock and menu bar first and loads the rest in the background; icons are cached on disk.
+- The original taskbar auto-hide setting is detected correctly, so it is restored exactly as it was.
+- Bilingual README and installation & usage guide (GUIDE.md).
+
+### Tiếng Việt
+- **Sửa:** sau khi đăng nhập, cửa sổ phóng to có thể che mất Thanh Menu và Dock (mất vùng chừa chỗ). Yêu cầu AppBar của MacDock nay gửi thẳng tới Explorer, MacDock đợi Explorer sẵn sàng khi đăng nhập và tự sửa vùng chừa chỗ, thứ tự cửa sổ.
+- **Sửa:** hộp xác nhận Tắt máy / Khởi động lại / Đăng xuất có thể mở phía sau các cửa sổ khác nên bấm như không có tác dụng. Nay hộp luôn hiện trên cùng.
+- **Sửa:** Win+Space / Shift+Win+Space đổi bộ gõ được cả khi taskbar Windows đang ẩn (kèm bảng nhỏ báo ngôn ngữ).
+- **Sửa:** Dock hiện ngay khi chuột chạm mép màn hình ở bất kỳ đâu, không chỉ gần Dock.
+- **Đăng nhập nhanh hơn:** khởi động qua Task Scheduler (không bị Windows trì hoãn), đợi Explorer sẵn sàng, hiện Dock và Thanh Menu trước rồi nạp phần còn lại; cache icon trên đĩa.
+- Đọc đúng chế độ tự ẩn gốc của taskbar để khôi phục y như cũ.
+- README và hướng dẫn cài đặt & sử dụng (GUIDE.md) song ngữ.
 ## [0.3.0] - 2026-11-10
 
 ### Thêm
@@ -25,11 +44,7 @@
 - Thoát MacDock không bị treo khi Explorer phản hồi chậm.
 - Dock hiện ngay khi chuột chạm cạnh màn hình (độ trễ mặc định 0, hiệu ứng nhanh hơn).
 - Popup trên Thanh Menu tự đóng khi bấm ra ngoài.
-- Khởi động nhanh khi đăng nhập: tự khởi động bằng Task Scheduler (chạy ngay khi đăng nhập, không bị Windows trì hoãn như khoá Run), hiện Dock/Thanh Menu trước rồi mới nạp phần chậm, cache icon trên đĩa.
 - Sửa lỗi Thanh Menu/Dock bị cửa sổ phóng to che mất: yêu cầu chừa chỗ (AppBar) của MacDock nay gửi thẳng tới Explorer; chờ Explorer sẵn sàng khi đăng nhập; tự đăng ký lại nếu vùng chừa chỗ bị mất.
-- Đọc đúng trạng thái tự ẩn gốc của taskbar để khi thoát trả lại đúng cài đặt của người dùng.
-- Win+Space / Shift+Win+Space đổi bộ gõ hoạt động khi taskbar gốc bị ẩn (MacDock tự xử lý và hiện bảng báo ngôn ngữ).
-- Khi tự khởi động lúc đăng nhập, MacDock đợi Explorer tạo xong taskbar thật rồi mới chạy, không chen vào lúc Windows đang khởi tạo shell.
 - Nút mũi tên và các nút trong màn hình chào bấm được (trước đó bị thao tác kéo cửa sổ nuốt mất).
 
 ## [0.2.0] - 2026-11-09

@@ -517,7 +517,7 @@ public sealed class DockModel
             m.Items.Add(Mi(L.T("Thoát"), () => QuitApp(item, false)));
             m.Items.Add(Mi(L.T("Buộc thoát"), () =>
             {
-                if (MessageBox.Show(L.F("Buộc thoát {0}? Dữ liệu chưa lưu sẽ bị mất.", item.Name), "MacDock", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                if (ConfirmDialog.Ask(L.F("Buộc thoát {0}? Dữ liệu chưa lưu sẽ bị mất.", item.Name), "", L.T("Buộc thoát"), true))
                     QuitApp(item, true);
             }));
         }

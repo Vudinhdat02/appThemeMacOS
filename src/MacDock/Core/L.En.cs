@@ -357,6 +357,7 @@ public static partial class L
         ["{0} (bản dựng {1})"] = "{0} (build {1})",
         ["Ánh sáng"] = "Daylight",
         ["Xem"] = "View",
+        ["Đồng ý"] = "OK",
         ["Pin"] = "Battery",
         ["Chung"] = "General",
         ["Thanh Menu"] = "Menu Bar",

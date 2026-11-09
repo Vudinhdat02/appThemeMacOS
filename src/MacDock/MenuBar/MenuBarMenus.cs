@@ -63,7 +63,7 @@ public static class MenuBarMenus
                 cm.Items.Add(quit);
                 cm.Items.Add(Mi(L.T("Buộc thoát…"), () =>
                 {
-                    if (MessageBox.Show(L.F("Buộc thoát {0}? Dữ liệu chưa lưu sẽ bị mất.", name), "MacDock", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                    if (ConfirmDialog.Ask(L.F("Buộc thoát {0}? Dữ liệu chưa lưu sẽ bị mất.", name), "", L.T("Buộc thoát"), true))
                         WindowActions.KillProcess(app.Pid);
                 }));
             }
