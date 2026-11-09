@@ -77,7 +77,8 @@ public sealed class AppBar : IDisposable
     {
         if (_registered) return;
         var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = _hwnd, uCallbackMessage = CallbackMessage };
-        _registered = Native.SHAppBarMessage(Native.ABM_NEW, ref abd) != IntPtr.Zero;
+        Native.SHAppBarMessage(Native.ABM_NEW, ref abd); // thất bại nếu đã đăng ký: vẫn coi là đã đăng ký
+        _registered = true;
     }
 
     /// <summary>Chừa một dải dày <paramref name="thickness"/> pixel trên cạnh <paramref name="edge"/> của màn hình. Trả về vùng được cấp.</summary>
@@ -108,6 +109,9 @@ public sealed class AppBar : IDisposable
         Reserved = abd.rc;
         return abd.rc;
     }
+
+    /// <summary>Explorer khởi động lại (vd lúc đăng nhập): đăng ký AppBar lại từ đầu.</summary>
+    public void Reregister() { _registered = false; _hasPos = false; }
 
     public void NotifyPosChanged()
     {

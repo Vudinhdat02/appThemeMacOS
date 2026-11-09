@@ -78,6 +78,8 @@ public sealed class DockWindow : Window
         return IntPtr.Zero;
     }
 
+    public void ExplorerRestarted() { _appBar?.Reregister(); _lastKey = ""; LayoutWindow(true); }
+
     public void SetMonitor(MonitorInfo m) { Monitor = m; LayoutWindow(); }
 
     public void Init()
@@ -134,7 +136,7 @@ public sealed class DockWindow : Window
         {
             if (w.Minimized || !Native.IsWindowVisible(w.Hwnd) || Native.IsIconic(w.Hwnd)) continue;
             if (Native.DwmGetWindowAttribute(w.Hwnd, 9 /*EXTENDED_FRAME_BOUNDS*/, out RECT r, System.Runtime.InteropServices.Marshal.SizeOf<RECT>()) != 0 && !Native.GetWindowRect(w.Hwnd, out r)) continue;
-            if (r.Left < band.Right && r.Right > band.Left && r.Top < band.Bottom && r.Bottom > band.Top) return true;
+            if (r.Left < band.Right && r.Right > band.Left && r.Top < band.Bottom && r.Bottom > band.Top) { if (Log.Verbose && !View.IsCoveredFlag) Log.Debug($"Che bởi {w.Title} {r} band={band}"); return true; }
         }
         return false;
     }

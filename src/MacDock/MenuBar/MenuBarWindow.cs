@@ -101,6 +101,8 @@ public sealed class MenuBarWindow : Window
         RebuildRight();
     }
 
+    public void ExplorerRestarted() { _appBar?.Reregister(); LayoutWindow(); }
+
     public void SetMonitor(MonitorInfo m) { Monitor = m; LayoutWindow(); }
 
     public void LayoutWindow()

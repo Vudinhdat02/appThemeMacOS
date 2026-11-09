@@ -159,6 +159,14 @@ public sealed class DockView : FrameworkElement
         POINT pt;
         if (FakeCursor is { } fc) pt = fc;
         else if (!Native.GetCursorPos(out pt)) return false;
+        // chạm mép màn hình ở bất kỳ đâu dọc theo cạnh của Dock (giống macOS)
+        var mb = _win.Monitor.Bounds;
+        _atEdge = Edge switch
+        {
+            DockEdge.Left => pt.X <= mb.Left + 1 && pt.Y >= mb.Top && pt.Y < mb.Bottom,
+            DockEdge.Right => pt.X >= mb.Right - 2 && pt.Y >= mb.Top && pt.Y < mb.Bottom,
+            _ => pt.Y >= mb.Bottom - 2 && pt.X >= mb.Left && pt.X < mb.Right
+        };
         Point p;
         try { p = _win.PointFromScreen(new Point(pt.X, pt.Y)); } catch { return false; }
         if (p.X < -2 || p.Y < -2 || p.X > ActualWidth + 2 || p.Y > ActualHeight + 2) { u = v = -1000; return true; }
@@ -169,6 +177,7 @@ public sealed class DockView : FrameworkElement
 
     bool WantsHover(double u, double v, bool already)
     {
+        if (EffectiveAutoHide && _atEdge) return true;
         if (u < -999) return false;
         double hiddenShift = _appliedOffset;
         if (EffectiveAutoHide && _hide > 0.5)
@@ -192,6 +201,7 @@ public sealed class DockView : FrameworkElement
         bool hadMouse = ReadMouse(out double u, out double v);
         bool busy = _dragging || _extDrag || _menuOpen;
         bool hover = busy || (hadMouse && WantsHover(u, v, _hover));
+        bool edgeOnly = hover && _atEdge && (u < -999 || u < _plateStart || u > _plateEnd); // ở mép nhưng ngoài Dock: hiện Dock, không phóng to
         if (_menuOpen) hover = _hover; // giữ nguyên khi menu mở
         else { _mouseU = u; _mouseV = v; }
 
@@ -223,7 +233,7 @@ public sealed class DockView : FrameworkElement
             }
         }
         else _hideTarget = 0;
-        _hover = hover && _hide < 0.6;
+        _hover = hover && !edgeOnly && _hide < 0.6;
 
         double k = App.EffectsOff ? 1 : 1 - Math.Exp(-dt * Cfg.AnimSpeed);
         bool animating = false;
@@ -295,11 +305,13 @@ public sealed class DockView : FrameworkElement
     }
 
     double _appliedOffset;
+    bool _atEdge;
     bool _covered;
     double HideDistance => Margin0 + PlateThick + 6;
     bool EffectiveAutoHide => Cfg.AutoHide && (_covered || !Cfg.AutoHideOnlyWhenCovered);
 
     /// <summary>Có cửa sổ nào che vùng Dock không (do DockWindow kiểm tra định kỳ khi bật tự ẩn).</summary>
+    public bool IsCoveredFlag => _covered;
     public void SetCovered(bool covered)
     {
         if (covered == _covered) return;
