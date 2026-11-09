@@ -98,6 +98,8 @@ public class MenuBarSettings
     public string? LogoImage { get; set; }
     public MonitorMode Monitors { get; set; } = MonitorMode.All;
     public List<string> HiddenTrayIcons { get; set; } = new() { "explorer.exe|1225" };
+    /// <summary>Các ô của Trung tâm điều khiển theo thứ tự; nút nhỏ có hậu tố ":s" (tròn) hoặc ":m" (viên thuốc).</summary>
+    public List<string> ControlCenter { get; set; } = new() { "connectivity", "nowplaying", "focus:m", "darkmode:s", "screenshot:s", "display", "sound" };
 }
 
 public class ThemeSettings

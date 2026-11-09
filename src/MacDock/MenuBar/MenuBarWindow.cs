@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
@@ -429,7 +429,7 @@ public sealed class MenuBarWindow : Window
     {
         Diag.StatusChanges++;
         // Đang mở popup/menu: không dựng lại (phần tử neo bị thay mới làm popup nhảy sang trái)
-        if (_popup?.IsOpen == true || _openMenu != null) { _rightPending = true; return; }
+        if (_popup != null || _openMenu != null) { _rightPending = true; return; }
         _rightPending = false;
         _right.Children.Clear();
         var st = StatusService.Instance;
@@ -467,12 +467,12 @@ public sealed class MenuBarWindow : Window
             FrameworkElement icon = st.Net.Kind == NetKind.Ethernet ? Glyphs.Icon(Glyphs.Ethernet, fg, 15)
                 : Glyphs.WifiIcon(fg, st.Net.Kind == NetKind.Wifi ? st.Net.SignalPercent : 0, 16);
             if (st.Net.Kind == NetKind.None) icon.Opacity = 0.45;
-            _right.Children.Add(Btn(icon, el => ShowPopup(el, MenuBarPopups.Network()), 7));
+            _right.Children.Add(Btn(icon, el => ShowPopup(el, p => ControlCenter.BuildWifi(p)), 7));
         }
 
         if (Cfg.ShowVolume && st.AudioAvailable)
         {
-            var b = Btn(Glyphs.VolumeIcon(fg, st.Volume, st.Muted, 16), el => ShowPopup(el, MenuBarPopups.Volume()), 7);
+            var b = Btn(Glyphs.VolumeIcon(fg, st.Volume, st.Muted, 16), el => ShowPopup(el, p => ControlCenter.BuildSound(p)), 7);
             b.MouseWheel += (_, e) =>
             {
                 AudioVolume.Instance.Level = Math.Clamp(AudioVolume.Instance.Level + (e.Delta > 0 ? 0.04f : -0.04f), 0f, 1f);
@@ -483,7 +483,7 @@ public sealed class MenuBarWindow : Window
         }
 
         if (Cfg.ShowControlCenter)
-            _right.Children.Add(Btn(Glyphs.ControlCenterIcon(fg, 15), el => ShowPopup(el, MenuBarPopups.ControlCenter()), 7, L.T("Trung tâm điều khiển")));
+            _right.Children.Add(Btn(Glyphs.ControlCenterIcon(fg, 15), el => ShowPopup(el, p => ControlCenter.Build(p)), 7, L.T("Trung tâm điều khiển")));
 
         if (Cfg.ShowNotifications)
             _right.Children.Add(Btn(Glyphs.Icon(Glyphs.Bell, fg, 15), _ => { CloseMenus(); Native.SendKeys(Native.VK_LWIN, 0x4E); }, 7, L.T("Thông báo (Win+N)")));
@@ -568,10 +568,10 @@ public sealed class MenuBarWindow : Window
     public void TestPopup(int k)
     {
         var owner = _right.Children.Count > 0 ? (FrameworkElement)_right.Children[^1] : this;
-        FrameworkElement content = k switch { 0 => MenuBarPopups.Battery(), 1 => MenuBarPopups.Network(), 2 => MenuBarPopups.Volume(), 3 => MenuBarPopups.ControlCenter(), _ => MenuBarPopups.Calendar() };
-        ShowPopup(owner, content);
+        FrameworkElement content = k switch { 0 => MenuBarPopups.Battery(), 1 => MenuBarPopups.Network(), 2 => MenuBarPopups.Volume(), _ => MenuBarPopups.Calendar() };
+        if (k == 3) ShowPopup(owner, p => ControlCenter.Build(p)); else if (k == 1) ShowPopup(owner, p => ControlCenter.BuildWifi(p)); else if (k == 2) ShowPopup(owner, p => ControlCenter.BuildSound(p)); else ShowPopup(owner, content);
     }
-    public void TestClosePopups() { CloseMenus(); if (_popup != null) _popup.IsOpen = false; }
+    public void TestClosePopups() { CloseMenus(); _popup?.Close(); }
     public string TestTrayClick(int i, bool right)
     {
         var icons = _trayEls.Keys.OrderBy(x => x.Order).ToList();
@@ -584,77 +584,46 @@ public sealed class MenuBarWindow : Window
 
     // ------------------------------------------------------------------ popup
 
-    Popup? _popup;
+    GlassPopup? _popup;
 
-    void ShowPopup(FrameworkElement owner, FrameworkElement content)
+    void ShowPopup(FrameworkElement owner, FrameworkElement content) => ShowPopup(owner, _ => content);
+
+    /// <summary>Mở bảng kính dưới nút trên Thanh Menu; bấm lại cùng nút thì đóng.</summary>
+    void ShowPopup(FrameworkElement owner, Func<GlassPopup, FrameworkElement> build)
     {
         CloseMenus();
-        if (_popup != null) { _popup.IsOpen = false; _popup = null; }
-        var t = T;
-        var border = new Border
+        // Bấm lại đúng nút đang mở: hook chuột đã đóng bảng lúc nhấn xuống → không mở lại (bật/tắt như macOS)
+        if (_popup != null) { bool same = _popupOwner == owner; _popup.Close(); if (same) return; }
+        var popup = new GlassPopup();
+        try { popup.Body = build(popup); } catch (Exception ex) { Log.Error("Mở bảng lỗi", ex); return; }
+        _popup = popup; _popupOwner = owner;
+        if (owner is Border ob) ob.Background = Hl;
+        popup.IgnoreClick = () =>
         {
-            Child = content,
-            Background = t.PopupBackground,
-            BorderBrush = t.PopupBorder,
-            BorderThickness = new Thickness(0.8),
-            CornerRadius = new CornerRadius(Math.Max(10, t.PopupCornerRadius + 3)),
-            Padding = new Thickness(14),
-            Margin = new Thickness(12),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 18, ShadowDepth = 3, Opacity = 0.25, Direction = 270 },
+            if (!owner.IsVisible || !Native.GetCursorPos(out var c)) return false;
+            var p = owner.PointFromScreen(new Point(c.X, c.Y));
+            return p.X >= 0 && p.Y >= 0 && p.X < owner.ActualWidth && p.Y < owner.ActualHeight;
         };
-        TextElement.SetForeground(border, t.PopupForeground);
-        TextElement.SetFontFamily(border, t.Font);
-        TextElement.SetFontSize(border, t.FontSize);
-        var popup = new Popup
-        {
-            Child = border,
-            PlacementTarget = owner,
-            AllowsTransparency = true,
-            StaysOpen = false,
-            PopupAnimation = App.EffectsOff ? PopupAnimation.None : PopupAnimation.Fade,
-        };
-        // Neo theo toạ độ màn hình cố định (DIP): căn mép phải popup với mép phải nút, ngay dưới Thanh Menu
-        try
-        {
-            double sc = Monitor.Scale;
-            var tl = owner.PointToScreen(new Point(0, 0));
-            border.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            double pw = border.DesiredSize.Width;
-            double right = tl.X / sc + owner.ActualWidth + 12;
-            double left = Math.Max(Monitor.Bounds.Left / sc, Math.Min(right - pw, Monitor.Bounds.Right / sc - pw));
-            popup.Placement = PlacementMode.Absolute;
-            popup.HorizontalOffset = left;
-            popup.VerticalOffset = (Monitor.Bounds.Top / sc) + ActualHeight - 8;
-        }
-        catch { popup.Placement = PlacementMode.Bottom; }
-        if (owner is Border ob) { ob.Background = Hl; popup.Closed += (_, _) => ob.Background = Brushes.Transparent; }
-        popup.Opened += (_, _) => Log.Debug("Popup mở");
         popup.Closed += (_, _) =>
         {
             Log.Debug("Popup đóng");
-            if (_popup == popup) _popup = null;
+            if (owner is Border b2) b2.Background = Brushes.Transparent;
+            if (_popup == popup) { _popup = null; _popupOwner = null; }
             if (_rightPending) Dispatcher.BeginInvoke(RebuildRight, DispatcherPriority.Background);
         };
-        _popup = popup;
-        popup.IsOpen = true;
-        // Cửa sổ không kích hoạt nên Popup không tự biết khi bấm vào app khác: tự theo dõi chuột
-        var watch = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
-        bool wasDown = true;
-        watch.Tick += (_, _) =>
+        MenuBarPopups.CloseRequested = () => { if (popup.IsLoaded) popup.Close(); };
+        int right, top;
+        try
         {
-            if (!popup.IsOpen) { watch.Stop(); return; }
-            bool down = (Native.GetAsyncKeyState(0x01) & 0x8000) != 0 || (Native.GetAsyncKeyState(0x02) & 0x8000) != 0;
-            if (down && !wasDown)
-            {
-                Native.GetCursorPos(out var pt);
-                bool inside = false;
-                if (PresentationSource.FromVisual(popup.Child) is HwndSource hs && Native.GetWindowRect(hs.Handle, out var pr)) inside = pr.Contains(pt.X, pt.Y);
-                if (!inside && Native.GetWindowRect(Hwnd, out var br)) inside = br.Contains(pt.X, pt.Y);
-                if (!inside) { popup.IsOpen = false; watch.Stop(); }
-            }
-            wasDown = down;
-        };
-        watch.Start();
-        MenuBarPopups.CloseRequested = () => popup.IsOpen = false;
+            var p = owner.PointToScreen(new Point(owner.ActualWidth, 0));
+            right = (int)p.X + (int)(6 * Monitor.Scale);
+            Native.GetWindowRect(Hwnd, out var br);
+            top = br.Bottom + (int)(5 * Monitor.Scale);
+        }
+        catch { right = Monitor.Bounds.Right - 8; top = Monitor.Bounds.Top + 40; }
+        popup.ShowAt(Monitor, right, top);
+        Log.Debug("Popup mở");
     }
+
+    FrameworkElement? _popupOwner;
 }

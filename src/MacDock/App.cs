@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
@@ -46,6 +46,7 @@ public sealed class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        OutsideClick.HookContextMenus();
         AppDomain.CurrentDomain.UnhandledException += (_, a) =>
         {
             Log.Error("UnhandledException", a.ExceptionObject as Exception);

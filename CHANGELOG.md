@@ -1,5 +1,26 @@
 # Nhật ký thay đổi / Changelog
 
+## [0.4.0] - 2026-11-10
+
+### English
+- **New Control Center** in a liquid-glass style: large rounded modules, circle and pill buttons, thick sliders.
+  - Wi-Fi, Bluetooth and Hotspot open their own detail views: network list with connect/disconnect, paired Bluetooth devices, and a link to Settings.
+  - Now Playing with artwork and playback controls (Spotify, browsers, Media Player…).
+  - Display brightness, and Sound with output/input device switching.
+  - Do Not Disturb, Dark Mode, Screenshot, Airplane Mode, Microphone, Night Light, Energy Mode, Screen Mirroring, Calculator, Accessibility and Lock Screen.
+  - **Edit Controls…**: add, remove and reorder modules, and switch buttons between small and medium; the layout is saved.
+- Clicking the Wi-Fi or volume icon in the menu bar opens the same glass panels; the volume panel also lets you pick the output device.
+- **Fixed:** menu bar panels and menus now close when you click anywhere outside them, including other apps and the desktop. Esc also closes them, and clicking the same icon again toggles the panel.
+
+### Tiếng Việt
+- **Trung tâm điều khiển mới** kiểu kính lỏng: khối bo tròn lớn, nút tròn và nút viên thuốc, thanh trượt dày.
+  - Wi-Fi, Bluetooth và Phát sóng mở trang chi tiết riêng: danh sách mạng để kết nối/ngắt, danh sách thiết bị Bluetooth đã ghép đôi, và lối vào Cài đặt.
+  - Đang phát kèm ảnh bìa và nút điều khiển (Spotify, trình duyệt, Media Player…).
+  - Độ sáng màn hình, và Âm thanh có chọn thiết bị phát/thu.
+  - Không làm phiền, Chế độ tối, Chụp màn hình, Chế độ máy bay, Micro, Ánh sáng ban đêm, Chế độ năng lượng, Chiếu màn hình, Máy tính, Trợ năng và Khoá màn hình.
+  - **Sửa điều khiển…**: thêm, bớt và sắp xếp module, và đổi cỡ nút nhỏ/vừa; bố cục được lưu lại.
+- Bấm icon Wi-Fi hoặc âm lượng trên Thanh Menu sẽ mở bảng kính tương tự; bảng âm lượng chọn được thiết bị phát.
+- **Sửa:** bảng và menu trên Thanh Menu tự đóng khi bấm ra bất kỳ đâu bên ngoài, kể cả app khác và desktop. Nhấn Esc cũng đóng được, và bấm lại cùng icon sẽ bật/tắt bảng.
 ## [0.3.1] - 2026-11-10
 
 ### English
