@@ -99,7 +99,7 @@ public sealed class PreviewWindow : Window
             var icon = DockModel.Instance.GetIcon(item);
             if (icon != null) slot.Child = new Image { Source = icon, Width = 40, Height = 40, Opacity = 0.5 };
             var title = new TextBlock { Text = string.IsNullOrWhiteSpace(w.Title) ? item.Name : w.Title, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = tw - 24, VerticalAlignment = VerticalAlignment.Center };
-            var close = new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Color.FromArgb(0x40, 0x80, 0x80, 0x88)), Cursor = Cursors.Hand, ToolTip = "Đóng cửa sổ",
+            var close = new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Color.FromArgb(0x40, 0x80, 0x80, 0x88)), Cursor = Cursors.Hand, ToolTip = L.T("Đóng cửa sổ"),
                 Child = new System.Windows.Shapes.Path { Data = Geometry.Parse("M4.5,4.5 L11.5,11.5 M11.5,4.5 L4.5,11.5"), Stroke = t.PopupForeground, StrokeThickness = 1.2, Width = 16, Height = 16 } };
             close.MouseLeftButtonUp += (_, e) => { e.Handled = true; WindowActions.Close(win.Hwnd); HideNow(); };
             var head = new DockPanel { Margin = new Thickness(2, 0, 2, 5) };

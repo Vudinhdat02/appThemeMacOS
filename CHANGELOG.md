@@ -11,7 +11,9 @@
 - Icon Launchpad chọn được: lưới màu, logo Windows 11 (vẽ vector) hoặc ảnh tự chọn.
 - **Thêm ứng dụng vào Dock**: cửa sổ chọn mọi app đã cài (kể cả app Store) có tìm kiếm; danh sách ghim trong Cài đặt với nút lên/xuống/gỡ; mục "Thêm ứng dụng vào Dock…" trong menu chuột phải của Dock.
 - "Giới thiệu máy này" và màn hình chào làm lại theo phong cách macOS 26 (cửa sổ kính bo góc).
-- Trang Giới thiệu có thông tin nhà phát triển, mã QR ủng hộ và các liên kết liên hệ.
+- Trang Giới thiệu có thông tin nhà phát triển, mã QR ủng hộ (MB Bank) và liên kết GitHub, website.
+- **Thanh Menu kính liquid**: làm mờ thật dải hình nền phía sau, phủ màu theo Dock, viền và bóng sáng; chỉnh được độ liquid.
+- **Ngôn ngữ**: Tiếng Việt / English cho toàn bộ app (Cài đặt → Chung).
 
 ### Sửa
 - Tự ẩn Dock thông minh: chỉ ẩn khi có cửa sổ che vùng Dock; ở màn hình chính Dock luôn hiện (có thể tắt).
@@ -21,6 +23,9 @@
 - Không còn icon âm lượng/pin trùng trong khay hệ thống.
 - Giảm vẽ lại khi rảnh (tiêu đề nhấp nháy, AppBar báo đổi vị trí qua lại).
 - Thoát MacDock không bị treo khi Explorer phản hồi chậm.
+- Dock hiện ngay khi chuột chạm cạnh màn hình (độ trễ mặc định 0, hiệu ứng nhanh hơn).
+- Popup trên Thanh Menu tự đóng khi bấm ra ngoài.
+- Nút mũi tên và các nút trong màn hình chào bấm được (trước đó bị thao tác kéo cửa sổ nuốt mất).
 
 ## [0.2.0] - 2026-11-09
 

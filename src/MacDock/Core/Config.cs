@@ -27,6 +27,8 @@ public class GeneralSettings
     public bool HideTaskbar { get; set; } = true;
     public bool FirstRunDone { get; set; }
     public bool Watchdog { get; set; } = true;
+    /// <summary>vi | en</summary>
+    public string Language { get; set; } = "vi";
     /// <summary>macdock | windows — giao diện khi bấm phím âm lượng/độ sáng</summary>
     public string OsdStyle { get; set; } = "macdock";
     /// <summary>top-right | bottom</summary>
@@ -49,7 +51,7 @@ public class DockSettings
     public bool BounceOnLaunch { get; set; } = true;
     public bool BounceOnAttention { get; set; } = true;
     public bool AutoHide { get; set; }
-    public int AutoHideShowDelayMs { get; set; } = 80;
+    public int AutoHideShowDelayMs { get; set; } = 0;
     public bool AutoHideOnlyWhenCovered { get; set; } = true;
     public int AutoHideHideDelayMs { get; set; } = 500;
     public bool ReserveSpace { get; set; } = true;
@@ -85,7 +87,9 @@ public class MenuBarSettings
     public bool UseUIAutomation { get; set; } = true;
     public bool BoldAppName { get; set; } = true;
     /// <summary>transparent (macOS 26) | glass | dock | solid | theme</summary>
-    public string Style { get; set; } = "transparent";
+    public string Style { get; set; } = "liquid";
+    /// <summary>0..1: độ mờ/bóng của kính liquid</summary>
+    public double Liquid { get; set; } = 0.55;
     public double Opacity { get; set; } = 1.0;
     /// <summary>auto | light | dark</summary>
     public string TextColor { get; set; } = "auto";
@@ -123,7 +127,7 @@ public class PerformanceSettings
 
 public class AppConfig
 {
-    public int Version { get; set; } = 2;
+    public int Version { get; set; } = 3;
     public GeneralSettings General { get; set; } = new();
     public DockSettings Dock { get; set; } = new();
     public MenuBarSettings MenuBar { get; set; } = new();
@@ -186,6 +190,14 @@ public static class Config
         }
         Sanitize(Current);
         if (!Current.General.FirstRunDone) IsFirstRun = true;
+        if (Current.Version < 3)
+        {
+            // 0.3: Dock hiện ngay khi chạm cạnh màn hình
+            if (Current.Dock.AutoHideShowDelayMs is 250 or 80) Current.Dock.AutoHideShowDelayMs = 0;
+            if (Current.MenuBar.Style is "transparent" or "theme") Current.MenuBar.Style = "liquid";
+            Current.Version = 3;
+            if (File.Exists(Paths.ConfigFile)) Save();
+        }
         if (Current.Dock.Pinned.Count == 0 && IsFirstRun) Current.Dock.Pinned = DefaultPins();
     }
 

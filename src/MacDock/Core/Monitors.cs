@@ -10,7 +10,7 @@ public sealed class MonitorInfo
     public RECT WorkArea { get; init; }
     public bool Primary { get; init; }
     public double Scale { get; init; } = 1.0;
-    public override string ToString() => $"{Device} {Bounds} scale={Scale}{(Primary ? " (chính)" : "")}";
+    public override string ToString() => $"{Device} {Bounds} scale={Scale}{(Primary ? L.T(" (chính)") : "")}";
 }
 
 public static class Monitors

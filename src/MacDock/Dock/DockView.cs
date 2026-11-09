@@ -230,7 +230,7 @@ public sealed class DockView : FrameworkElement
 
         if (Math.Abs(_hide - _hideTarget) > 0.001)
         {
-            double kh = App.EffectsOff ? 1 : 1 - Math.Exp(-dt * 12);
+            double kh = App.EffectsOff ? 1 : 1 - Math.Exp(-dt * (_hideTarget < 0.5 ? 26 : 14));
             _hide += (_hideTarget - _hide) * kh;
             if (Math.Abs(_hide - _hideTarget) < 0.005) _hide = _hideTarget;
             animating = true;
@@ -529,7 +529,7 @@ public sealed class DockView : FrameworkElement
             dc.PushOpacity(_dragOut ? 0.55 : 0.9);
             DrawIcon(dc, _dragItem, rect, theme);
             dc.Pop();
-            if (_dragOut && _dragItem.Pinned) DrawLabel(dc, "Gỡ khỏi Dock", rect, theme, fontSize);
+            if (_dragOut && _dragItem.Pinned) DrawLabel(dc, L.T("Gỡ khỏi Dock"), rect, theme, fontSize);
         }
 
         // nhãn tên

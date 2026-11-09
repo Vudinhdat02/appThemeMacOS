@@ -115,7 +115,7 @@ public static class AppMenuProvider
                 continue;
             }
             var (text, accel) = SplitAccel(it.text);
-            if (string.IsNullOrWhiteSpace(text)) text = it.ownerDraw ? $"(mục {i + 1})" : "";
+            if (string.IsNullOrWhiteSpace(text)) text = it.ownerDraw ? L.F("(mục {0})", i + 1) : "";
             if (string.IsNullOrWhiteSpace(text)) continue;
             var mi = new MenuItem { Header = text.Replace("_", "__"), InputGestureText = accel, IsEnabled = !it.disabled, IsChecked = it.isChecked };
             if (it.sub != IntPtr.Zero)
@@ -143,7 +143,7 @@ public static class AppMenuProvider
             lastSep = false;
         }
         if (target.Items.Count > 0 && target.Items[^1] is Separator) target.Items.RemoveAt(target.Items.Count - 1);
-        if (target.Items.Count == 0) target.Items.Add(new MenuItem { Header = "(trống)", IsEnabled = false });
+        if (target.Items.Count == 0) target.Items.Add(new MenuItem { Header = L.T("(trống)"), IsEnabled = false });
     }
 
     // ---------------- UI Automation ----------------
@@ -257,19 +257,19 @@ public static class AppMenuProvider
         MenuItem K(string t, string g, params ushort[] keys) { var mi = DockModel.Mi(t, () => WindowActions.SendKeysTo(hwnd, keys)); mi.InputGestureText = g; return mi; }
         var list = new List<TopMenu>
         {
-            new() { Title = "Tệp", Build = () => new ContextMenu { Items = {
-                K("Cửa sổ mới", "Ctrl+N", Native.VK_CONTROL, VK_N), K("Mở…", "Ctrl+O", Native.VK_CONTROL, VK_O), K("Lưu", "Ctrl+S", Native.VK_CONTROL, VK_S),
-                K("In…", "Ctrl+P", Native.VK_CONTROL, VK_P), new Separator(), K("Đóng cửa sổ", "Alt+F4", Native.VK_MENU, Native.VK_F4) } } },
-            new() { Title = "Sửa", Build = () => new ContextMenu { Items = {
-                K("Hoàn tác", "Ctrl+Z", Native.VK_CONTROL, VK_Z), K("Làm lại", "Ctrl+Y", Native.VK_CONTROL, VK_Y), new Separator(),
-                K("Cắt", "Ctrl+X", Native.VK_CONTROL, VK_X), K("Sao chép", "Ctrl+C", Native.VK_CONTROL, VK_C), K("Dán", "Ctrl+V", Native.VK_CONTROL, VK_V),
-                K("Chọn tất cả", "Ctrl+A", Native.VK_CONTROL, VK_A), new Separator(), K("Tìm…", "Ctrl+F", Native.VK_CONTROL, VK_F) } } },
-            new() { Title = "Xem", Build = () => new ContextMenu { Items = {
-                K("Phóng to", "Ctrl++", Native.VK_CONTROL, VK_OEM_PLUS), K("Thu nhỏ", "Ctrl+-", Native.VK_CONTROL, VK_OEM_MINUS), K("Kích thước thật", "Ctrl+0", Native.VK_CONTROL, VK_0),
-                new Separator(), K("Tải lại", "F5", VK_F5), K("Toàn màn hình", "F11", VK_F11) } } },
-            new() { Title = "Cửa sổ", Build = () => WindowMenu(hwnd, app) },
-            new() { Title = "Trợ giúp", Build = () => new ContextMenu { Items = { K("Trợ giúp của ứng dụng", "F1", Native.VK_F1),
-                DockModel.Mi("Mẹo dùng Windows", () => Launcher.Open("ms-get-started:")) } } },
+            new() { Title = L.T("Tệp"), Build = () => new ContextMenu { Items = {
+                K(L.T("Cửa sổ mới"), "Ctrl+N", Native.VK_CONTROL, VK_N), K(L.T("Mở…"), "Ctrl+O", Native.VK_CONTROL, VK_O), K(L.T("Lưu"), "Ctrl+S", Native.VK_CONTROL, VK_S),
+                K("In…", "Ctrl+P", Native.VK_CONTROL, VK_P), new Separator(), K(L.T("Đóng cửa sổ"), "Alt+F4", Native.VK_MENU, Native.VK_F4) } } },
+            new() { Title = L.T("Sửa"), Build = () => new ContextMenu { Items = {
+                K(L.T("Hoàn tác"), "Ctrl+Z", Native.VK_CONTROL, VK_Z), K(L.T("Làm lại"), "Ctrl+Y", Native.VK_CONTROL, VK_Y), new Separator(),
+                K(L.T("Cắt"), "Ctrl+X", Native.VK_CONTROL, VK_X), K(L.T("Sao chép"), "Ctrl+C", Native.VK_CONTROL, VK_C), K(L.T("Dán"), "Ctrl+V", Native.VK_CONTROL, VK_V),
+                K(L.T("Chọn tất cả"), "Ctrl+A", Native.VK_CONTROL, VK_A), new Separator(), K(L.T("Tìm…"), "Ctrl+F", Native.VK_CONTROL, VK_F) } } },
+            new() { Title = L.T("Xem"), Build = () => new ContextMenu { Items = {
+                K(L.T("Phóng to"), "Ctrl++", Native.VK_CONTROL, VK_OEM_PLUS), K(L.T("Thu nhỏ"), "Ctrl+-", Native.VK_CONTROL, VK_OEM_MINUS), K(L.T("Kích thước thật"), "Ctrl+0", Native.VK_CONTROL, VK_0),
+                new Separator(), K(L.T("Tải lại"), "F5", VK_F5), K(L.T("Toàn màn hình"), "F11", VK_F11) } } },
+            new() { Title = L.T("Cửa sổ"), Build = () => WindowMenu(hwnd, app) },
+            new() { Title = L.T("Trợ giúp"), Build = () => new ContextMenu { Items = { K(L.T("Trợ giúp của ứng dụng"), "F1", Native.VK_F1),
+                DockModel.Mi(L.T("Mẹo dùng Windows"), () => Launcher.Open("ms-get-started:")) } } },
         };
         return list;
     }
@@ -277,9 +277,9 @@ public static class AppMenuProvider
     public static ContextMenu WindowMenu(IntPtr hwnd, AppId? app)
     {
         var cm = new ContextMenu();
-        cm.Items.Add(DockModel.Mi("Thu nhỏ", () => WindowActions.Minimize(hwnd), hwnd != IntPtr.Zero));
-        cm.Items.Add(DockModel.Mi("Phóng to", () => WindowActions.Maximize(hwnd), hwnd != IntPtr.Zero));
-        cm.Items.Add(DockModel.Mi("Khôi phục kích thước", () => WindowActions.RestoreWin(hwnd), hwnd != IntPtr.Zero));
+        cm.Items.Add(DockModel.Mi(L.T("Thu nhỏ"), () => WindowActions.Minimize(hwnd), hwnd != IntPtr.Zero));
+        cm.Items.Add(DockModel.Mi(L.T("Phóng to"), () => WindowActions.Maximize(hwnd), hwnd != IntPtr.Zero));
+        cm.Items.Add(DockModel.Mi(L.T("Khôi phục kích thước"), () => WindowActions.RestoreWin(hwnd), hwnd != IntPtr.Zero));
         if (app != null)
         {
             var wins = WindowTracker.Instance.WindowsOf(app.Key);

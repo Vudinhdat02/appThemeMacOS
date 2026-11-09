@@ -20,7 +20,7 @@ public sealed class WelcomeWindow : GlassWindow
     public WelcomeWindow(bool reviewOnly = false) : base(760, closeButton: true, tintOpacity: 0.62)
     {
         _reviewOnly = reviewOnly;
-        Title = "Chào mừng đến với MacDock";
+        Title = L.T("Chào mừng đến với MacDock");
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Topmost = !reviewOnly;
 
@@ -87,7 +87,7 @@ public sealed class WelcomeWindow : GlassWindow
         {
             new(Color.FromRgb(0x3A, 0x8D, 0xFF), 0), new(Color.FromRgb(0xA8, 0x5C, 0xF7), 0.35), new(Color.FromRgb(0xFF, 0x6B, 0x8B), 0.7), new(Color.FromRgb(0xFF, 0xB2, 0x4D), 1)
         }, new Point(0, 0.5), new Point(1, 0.5)) { MappingMode = BrushMappingMode.RelativeToBoundingBox };
-        var hello = new TextBlock { Text = "xin chào", FontSize = 96, FontWeight = FontWeights.Light, FontStyle = FontStyles.Italic, Foreground = grad, HorizontalAlignment = HorizontalAlignment.Center, FontFamily = new FontFamily("Segoe UI Variable Display, Segoe UI Light, Segoe UI") };
+        var hello = new TextBlock { Text = L.T("xin chào"), FontSize = 96, FontWeight = FontWeights.Light, FontStyle = FontStyles.Italic, Foreground = grad, HorizontalAlignment = HorizontalAlignment.Center, FontFamily = new FontFamily("Segoe UI Variable Display, Segoe UI Light, Segoe UI") };
         if (!App.EffectsOff)
         {
             var tt = new TranslateTransform();
@@ -96,21 +96,21 @@ public sealed class WelcomeWindow : GlassWindow
             hello.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromSeconds(1.2)));
         }
         sp.Children.Add(hello);
-        sp.Children.Add(new TextBlock { Text = "Chào mừng đến với MacDock", FontSize = 20, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 4, 0, 6) });
-        sp.Children.Add(new TextBlock { Text = "Dock, Thanh Menu và giao diện kiểu macOS cho Windows 11", Opacity = 0.65, HorizontalAlignment = HorizontalAlignment.Center });
+        sp.Children.Add(new TextBlock { Text = L.T("Chào mừng đến với MacDock"), FontSize = 20, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 4, 0, 6) });
+        sp.Children.Add(new TextBlock { Text = L.T("Dock, Thanh Menu và giao diện mới cho Windows 11"), Opacity = 0.65, HorizontalAlignment = HorizontalAlignment.Center });
         sp.Children.Add(ArrowButton(() => Go(1), 30));
         return sp;
     }
 
     FrameworkElement PageFeatures()
     {
-        var sp = Page("Có gì trong MacDock");
+        var sp = Page(L.T("Có gì trong MacDock"));
         foreach (var (glyph, color, title, desc) in new (Geometry, Color, string, string)[]
         {
-            (Glyphs.DockShape, Color.FromRgb(0x0A, 0x84, 0xFF), "Dock", "Phóng to khi rê chuột, xem trước cửa sổ, kéo thả để sắp xếp và ghim ứng dụng."),
-            (Glyphs.MenuBarShape, Color.FromRgb(0x5E, 0x5C, 0xE6), "Thanh Menu", "Menu của ứng dụng đang dùng, Wi‑Fi, âm lượng, pin, đồng hồ và icon khay hệ thống."),
-            (Glyphs.Palette, Color.FromRgb(0xFF, 0x9F, 0x0A), "Giao diện", "6 chủ đề dựng sẵn, sáng/tối theo Windows hoặc theo giờ, nhập/xuất theme."),
-            (Glyphs.Bolt, Color.FromRgb(0x30, 0xD1, 0x58), "Nhẹ và an toàn", "Gần như không tốn CPU khi rảnh; taskbar gốc luôn được khôi phục khi thoát."),
+            (Glyphs.DockShape, Color.FromRgb(0x0A, 0x84, 0xFF), "Dock", L.T("Phóng to khi rê chuột, xem trước cửa sổ, kéo thả để sắp xếp và ghim ứng dụng.")),
+            (Glyphs.MenuBarShape, Color.FromRgb(0x5E, 0x5C, 0xE6), L.T("Thanh Menu"), L.T("Menu của ứng dụng đang dùng, Wi‑Fi, âm lượng, pin, đồng hồ và icon khay hệ thống.")),
+            (Glyphs.Palette, Color.FromRgb(0xFF, 0x9F, 0x0A), L.T("Giao diện"), L.T("6 chủ đề dựng sẵn, sáng/tối theo Windows hoặc theo giờ, nhập/xuất theme.")),
+            (Glyphs.Bolt, Color.FromRgb(0x30, 0xD1, 0x58), L.T("Nhẹ và an toàn"), L.T("Gần như không tốn CPU khi rảnh; taskbar gốc luôn được khôi phục khi thoát.")),
         })
         {
             var row = new DockPanel { Margin = new Thickness(0, 0, 0, 16), MaxWidth = 520 };
@@ -129,7 +129,7 @@ public sealed class WelcomeWindow : GlassWindow
 
     FrameworkElement PageSetup()
     {
-        var sp = Page("Thiết lập nhanh");
+        var sp = Page(L.T("Thiết lập nhanh"));
         var g = Config.Current.General;
         var card = new Border { CornerRadius = new CornerRadius(14), Background = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF)), Padding = new Thickness(18, 6, 18, 6), MaxWidth = 520, BorderThickness = new Thickness(0.6), BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x80, 0x80, 0x88)) };
         var list = new StackPanel();
@@ -147,10 +147,10 @@ public sealed class WelcomeWindow : GlassWindow
             list.Children.Add(row);
             return cb;
         }
-        _auto = Opt("Khởi động cùng Windows", "Tự chạy MacDock khi đăng nhập", g.AutoStart);
-        _hide = Opt("Ẩn thanh tác vụ của Windows", "Icon khay hệ thống sẽ hiện trên Thanh Menu. Bật lại bất cứ lúc nào.", g.HideTaskbar);
-        _bar = Opt("Hiện Thanh Menu", "Thanh menu ở cạnh trên màn hình", Config.Current.MenuBar.Enabled);
-        _previews = Opt("Xem trước cửa sổ trên Dock", "Rê chuột lên ứng dụng đang chạy để xem các cửa sổ", Config.Current.Dock.WindowPreviews);
+        _auto = Opt(L.T("Khởi động cùng Windows"), L.T("Tự chạy MacDock khi đăng nhập"), g.AutoStart);
+        _hide = Opt(L.T("Ẩn thanh tác vụ của Windows"), L.T("Icon khay hệ thống sẽ hiện trên Thanh Menu. Bật lại bất cứ lúc nào."), g.HideTaskbar);
+        _bar = Opt(L.T("Hiện Thanh Menu"), L.T("Thanh menu ở cạnh trên màn hình"), Config.Current.MenuBar.Enabled);
+        _previews = Opt(L.T("Xem trước cửa sổ trên Dock"), L.T("Rê chuột lên ứng dụng đang chạy để xem các cửa sổ"), Config.Current.Dock.WindowPreviews);
         card.Child = list;
         sp.Children.Add(card);
 
@@ -171,7 +171,7 @@ public sealed class WelcomeWindow : GlassWindow
             };
             themes.Children.Add(sw);
         }
-        sp.Children.Add(new TextBlock { Text = "Chọn chủ đề", HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.6, Margin = new Thickness(0, 14, 0, 0), FontSize = 12 });
+        sp.Children.Add(new TextBlock { Text = L.T("Chọn chủ đề"), HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.6, Margin = new Thickness(0, 14, 0, 0), FontSize = 12 });
         sp.Children.Add(themes);
         sp.Children.Add(NavButtons(1, 3));
         return sp;
@@ -181,10 +181,10 @@ public sealed class WelcomeWindow : GlassWindow
     {
         var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         sp.Children.Add(new Image { Source = Glyphs.AppIcon, Width = 96, Height = 96 });
-        sp.Children.Add(new TextBlock { Text = "Đã sẵn sàng", FontSize = 30, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 14, 0, 6) });
-        sp.Children.Add(new TextBlock { Text = "Chuột phải lên Dock để đổi giao diện nhanh, hoặc mở Cài đặt từ biểu tượng góc trên bên trái.", Opacity = 0.65, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 440 });
-        sp.Children.Add(new TextBlock { Text = "Nếu taskbar không hiện lại vì lý do nào đó: MacDock.exe --restore-taskbar", Opacity = 0.45, FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 0) });
-        var start = PillButton(_reviewOnly ? "Xong" : "Bắt đầu sử dụng", true);
+        sp.Children.Add(new TextBlock { Text = L.T("Đã sẵn sàng"), FontSize = 30, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 14, 0, 6) });
+        sp.Children.Add(new TextBlock { Text = L.T("Chuột phải lên Dock để đổi giao diện nhanh, hoặc mở Cài đặt từ biểu tượng góc trên bên trái."), Opacity = 0.65, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, MaxWidth = 440 });
+        sp.Children.Add(new TextBlock { Text = L.T("Nếu taskbar không hiện lại vì lý do nào đó: MacDock.exe --restore-taskbar"), Opacity = 0.45, FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 0) });
+        var start = PillButton(_reviewOnly ? "Xong" : L.T("Bắt đầu sử dụng"), true);
         start.Padding = new Thickness(36, 9, 36, 9);
         start.FontSize = 14;
         start.Margin = new Thickness(0, 26, 0, 0);
@@ -192,7 +192,7 @@ public sealed class WelcomeWindow : GlassWindow
         start.IsDefault = true;
         start.Click += (_, _) => Close();
         sp.Children.Add(start);
-        var back = new TextBlock { Text = "Quay lại", HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0), Cursor = System.Windows.Input.Cursors.Hand, Opacity = 0.6 };
+        var back = new TextBlock { Text = L.T("Quay lại"), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0), Cursor = System.Windows.Input.Cursors.Hand, Opacity = 0.6 };
         back.MouseLeftButtonUp += (_, _) => Go(2);
         sp.Children.Add(back);
         return sp;
@@ -210,8 +210,8 @@ public sealed class WelcomeWindow : GlassWindow
     FrameworkElement NavButtons(int back, int next)
     {
         var sp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 20, 0, 0) };
-        var b = PillButton("Quay lại", false); b.Click += (_, _) => Go(back); b.Margin = new Thickness(0, 0, 10, 0);
-        var n = PillButton("Tiếp tục", true); n.Click += (_, _) => Go(next); n.IsDefault = true;
+        var b = PillButton(L.T("Quay lại"), false); b.Click += (_, _) => Go(back); b.Margin = new Thickness(0, 0, 10, 0);
+        var n = PillButton(L.T("Tiếp tục"), true); n.Click += (_, _) => Go(next); n.IsDefault = true;
         sp.Children.Add(b); sp.Children.Add(n);
         return sp;
     }

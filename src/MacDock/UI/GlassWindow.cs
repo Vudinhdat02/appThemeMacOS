@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -53,7 +53,7 @@ public class GlassWindow : Window
                 Width = 13, Height = 13, CornerRadius = new CornerRadius(6.5), Background = new SolidColorBrush(Color.FromRgb(0xFF, 0x5F, 0x57)),
                 BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0, 0, 0)), BorderThickness = new Thickness(0.5),
                 HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(14, 14, 0, 0),
-                Cursor = Cursors.Hand, ToolTip = "Đóng"
+                Cursor = Cursors.Hand, ToolTip = L.T("Đóng")
             };
             var x = new System.Windows.Shapes.Path { Data = Geometry.Parse("M3.5,3.5 L9.5,9.5 M9.5,3.5 L3.5,9.5"), Stroke = new SolidColorBrush(Color.FromArgb(0xA0, 0x4D, 0, 0)), StrokeThickness = 1.3, Visibility = Visibility.Hidden };
             dot.Child = x;
@@ -66,10 +66,20 @@ public class GlassWindow : Window
         Content = _root;
         MouseLeftButtonDown += (_, e) =>
         {
-            if (e.OriginalSource is FrameworkElement fe && (fe is TextBox || fe.TemplatedParent is TextBox || fe is PasswordBox)) return;
+            for (DependencyObject? d = e.OriginalSource as DependencyObject; d != null && d != this; d = VisualOrLogicalParent(d))
+            {
+                if (d is TextBox or PasswordBox or System.Windows.Controls.Primitives.ButtonBase or Slider or ListBox or ComboBox or System.Windows.Controls.Primitives.ScrollBar) return;
+                if (d is FrameworkElement fe && fe.Cursor == Cursors.Hand) return;
+            }
             try { DragMove(); } catch { }
         };
         KeyDown += (_, e) => { if (e.Key == Key.Escape) Close(); };
+    }
+
+    static DependencyObject? VisualOrLogicalParent(DependencyObject d)
+    {
+        if (d is Visual or System.Windows.Media.Media3D.Visual3D) return VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+        return LogicalTreeHelper.GetParent(d);
     }
 
     protected override void OnSourceInitialized(EventArgs e)

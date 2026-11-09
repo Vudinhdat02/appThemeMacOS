@@ -26,7 +26,7 @@ public sealed class AboutPcWindow : GlassWindow
 
     AboutPcWindow() : base(330)
     {
-        Title = "Giới thiệu máy này";
+        Title = L.T("Giới thiệu máy này");
         var sp = new StackPanel { Margin = new Thickness(28, 38, 28, 24) };
         sp.Children.Add(Laptop());
         _model.Text = Environment.MachineName;
@@ -55,25 +55,25 @@ public sealed class AboutPcWindow : GlassWindow
         cpu = cpu.Replace("(R)", "").Replace("(TM)", "").Replace(" CPU", "");
         AddRow("Chip", cpu);
         var mem = new MEMORYSTATUSEX { dwLength = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MEMORYSTATUSEX>() };
-        if (Native.GlobalMemoryStatusEx(ref mem)) AddRow("Bộ nhớ", $"{Math.Round(mem.ullTotalPhys / 1073741824.0)} GB");
-        var gpu = AddRow("Đồ hoạ", "…");
+        if (Native.GlobalMemoryStatusEx(ref mem)) AddRow(L.T("Bộ nhớ"), $"{Math.Round(mem.ullTotalPhys / 1073741824.0)} GB");
+        var gpu = AddRow(L.T("Đồ hoạ"), "…");
         try
         {
             var c = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\");
-            AddRow("Ổ đĩa khởi động", $"{c.Name.TrimEnd('\\')}  {c.TotalSize / 1e9:0} GB ({c.AvailableFreeSpace / 1e9:0} GB trống)");
+            AddRow(L.T("Ổ đĩa khởi động"), L.F("{0}  {1:0} GB ({2:0} GB trống)", c.Name.TrimEnd('\\'), c.TotalSize / 1e9, c.AvailableFreeSpace / 1e9));
         }
         catch { }
-        var serial = AddRow("Số sê-ri", "…");
+        var serial = AddRow(L.T("Số sê-ri"), "…");
         var m = Monitors.GetAll().FirstOrDefault(x => x.Primary);
-        if (m != null) AddRow("Màn hình", $"{m.Bounds.Width}×{m.Bounds.Height} @ {m.Scale * 100:0}%");
-        AddRow("Windows", $"{display} (bản dựng {build})");
+        if (m != null) AddRow(L.T("Màn hình"), $"{m.Bounds.Width}×{m.Bounds.Height} @ {m.Scale * 100:0}%");
+        AddRow("Windows", L.F("{0} (bản dựng {1})", display, build));
 
-        var more = PillButton("Thông tin khác…", false);
+        var more = PillButton(L.T("Thông tin khác…"), false);
         more.HorizontalAlignment = HorizontalAlignment.Center;
         more.Margin = new Thickness(0, 22, 0, 0);
         more.Click += (_, _) => Launcher.Open("ms-settings:about");
         sp.Children.Add(more);
-        var report = new TextBlock { Text = "Báo cáo hệ thống…", HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0), FontSize = 11.5, Cursor = System.Windows.Input.Cursors.Hand };
+        var report = new TextBlock { Text = L.T("Báo cáo hệ thống…"), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0), FontSize = 11.5, Cursor = System.Windows.Input.Cursors.Hand };
         report.SetResourceReference(TextBlock.ForegroundProperty, "Md.Accent");
         report.MouseLeftButtonUp += (_, _) => Launcher.Open("msinfo32.exe");
         sp.Children.Add(report);
@@ -105,8 +105,8 @@ public sealed class AboutPcWindow : GlassWindow
         {
             var (model, gpus, sn) = t.Result;
             if (!string.IsNullOrWhiteSpace(model) && !model.Contains("To Be Filled", StringComparison.OrdinalIgnoreCase)) _model.Text = model;
-            gpu.Text = string.IsNullOrEmpty(gpus) ? "Không rõ" : gpus;
-            serial.Text = string.IsNullOrEmpty(sn) ? "Không rõ" : sn;
+            gpu.Text = string.IsNullOrEmpty(gpus) ? L.T("Không rõ") : gpus;
+            serial.Text = string.IsNullOrEmpty(sn) ? L.T("Không rõ") : sn;
         }));
     }
 

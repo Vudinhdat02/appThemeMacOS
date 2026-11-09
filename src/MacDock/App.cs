@@ -8,6 +8,9 @@ namespace MacDock;
 public sealed class App : Application
 {
     public static App Instance { get; private set; } = null!;
+    public static bool RestartRequested { get; private set; }
+
+    public void Restart() { RestartRequested = true; Quit(); }
     public static string VersionString => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.2.0";
 
     /// <summary>Tắt hiệu ứng hoàn toàn (người dùng chọn, hoặc đang dùng pin khi bật giảm hiệu ứng).</summary>

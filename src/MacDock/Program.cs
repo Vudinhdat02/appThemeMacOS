@@ -28,6 +28,10 @@ public static class Program
                 case "--verbose": Log.Verbose = true; break;
                 case "--no-autostart": NoAutostartWrite = true; break;
                 case "--test": TestMode = true; NoAutostartWrite = true; break;
+                case "--after" when i + 1 < args.Length:
+                    if (int.TryParse(args[++i], out int prev))
+                        try { System.Diagnostics.Process.GetProcessById(prev).WaitForExit(15000); } catch { }
+                    break;
             }
         }
         if (CustomConfigDir != null) Paths.Root = CustomConfigDir;
@@ -75,6 +79,19 @@ public static class Program
         {
             var app = new App();
             app.Run();
+            if (App.RestartRequested)
+            {
+                var args = new List<string>();
+                var src = Environment.GetCommandLineArgs().Skip(1).ToList();
+                for (int k = 0; k < src.Count; k++)
+                {
+                    if (src[k] == "--after") { k++; continue; }
+                    args.Add(src[k].Contains(' ') ? "\"" + src[k] + "\"" : src[k]);
+                }
+                args.Add("--after");
+                args.Add(Environment.ProcessId.ToString());
+                Process.Start(new ProcessStartInfo(Paths.ExePath, string.Join(" ", args)) { UseShellExecute = false });
+            }
         }
         catch (Exception ex)
         {

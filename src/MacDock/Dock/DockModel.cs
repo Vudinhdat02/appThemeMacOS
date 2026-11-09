@@ -44,7 +44,7 @@ public sealed class DockModel
     readonly Dictionary<string, DockItem> _byKey = new(StringComparer.OrdinalIgnoreCase);
     readonly List<string> _runningOrder = new();
     readonly DockItem _launchpad = new() { Kind = DockItemKind.Launchpad, Key = "special:launchpad", Name = "Launchpad (Start)" };
-    readonly DockItem _trash = new() { Kind = DockItemKind.Trash, Key = "special:trash", Name = "Thùng rác" };
+    readonly DockItem _trash = new() { Kind = DockItemKind.Trash, Key = "special:trash", Name = L.T("Thùng rác") };
     readonly DockItem _sep1 = new() { Kind = DockItemKind.Separator, Key = "special:sep1" };
     readonly DockItem _sep2 = new() { Kind = DockItemKind.Separator, Key = "special:sep2" };
     DispatcherTimer? _trashTimer;
@@ -436,7 +436,7 @@ public sealed class DockModel
 
     public void ChangeIcon(DockItem item)
     {
-        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Ảnh/Icon (*.png;*.ico;*.exe)|*.png;*.ico;*.exe|Tất cả|*.*", Title = "Chọn biểu tượng cho " + item.Name };
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = L.T("Ảnh/Icon (*.png;*.ico;*.exe)|*.png;*.ico;*.exe|Tất cả|*.*"), Title = L.T("Chọn biểu tượng cho ") + item.Name };
         if (dlg.ShowDialog() == true)
         {
             string dest = Path.Combine(Paths.IconsDir, "custom");
@@ -464,8 +464,8 @@ public sealed class DockModel
         switch (item.Kind)
         {
             case DockItemKind.Trash:
-                m.Items.Add(Mi("Mở", () => Launcher.Open("shell:RecycleBinFolder")));
-                m.Items.Add(Mi("Dọn sạch Thùng rác…", EmptyTrash, item.TrashFull));
+                m.Items.Add(Mi(L.T("Mở"), () => Launcher.Open("shell:RecycleBinFolder")));
+                m.Items.Add(Mi(L.T("Dọn sạch Thùng rác…"), EmptyTrash, item.TrashFull));
                 m.Items.Add(new Separator());
                 AddDockOptions(m);
                 return m;
@@ -480,40 +480,40 @@ public sealed class DockModel
         foreach (var w in item.Windows.OrderBy(w => w.Hwnd.ToInt64()))
         {
             string title = w.Title.Length > 60 ? w.Title.Substring(0, 57) + "…" : w.Title;
-            var mi = Mi(title + (w.Minimized ? "  (thu nhỏ)" : ""), () => WindowActions.Activate(w.Hwnd));
+            var mi = Mi(title + (w.Minimized ? L.T("  (thu nhỏ)") : ""), () => WindowActions.Activate(w.Hwnd));
             mi.IsChecked = w.Hwnd == fg;
             m.Items.Add(mi);
         }
         if (item.Windows.Count > 0) m.Items.Add(new Separator());
 
         if (item.PinKind != "folder")
-            m.Items.Add(Mi(item.Running ? "Mở cửa sổ mới" : "Mở", () => { if (Launch(item) && !item.Running && Config.Current.Dock.BounceOnLaunch) Bounce(item, 3, 0.55); }));
-        else m.Items.Add(Mi("Mở thư mục", () => Launcher.Launch("folder", item.Key.Substring(7))));
+            m.Items.Add(Mi(item.Running ? L.T("Mở cửa sổ mới") : L.T("Mở"), () => { if (Launch(item) && !item.Running && Config.Current.Dock.BounceOnLaunch) Bounce(item, 3, 0.55); }));
+        else m.Items.Add(Mi(L.T("Mở thư mục"), () => Launcher.Launch("folder", item.Key.Substring(7))));
 
-        var opt = new MenuItem { Header = "Tuỳ chọn" };
-        var keep = Mi("Giữ trên Dock", () => SetPinned(item, !cfgPinned));
+        var opt = new MenuItem { Header = L.T("Tuỳ chọn") };
+        var keep = Mi(L.T("Giữ trên Dock"), () => SetPinned(item, !cfgPinned));
         keep.IsChecked = cfgPinned;
         opt.Items.Add(keep);
         if (cfgPinned)
         {
-            opt.Items.Add(Mi("Chuyển sang trái", () => Move(item, -1)));
-            opt.Items.Add(Mi("Chuyển sang phải", () => Move(item, +1)));
+            opt.Items.Add(Mi(L.T("Chuyển sang trái"), () => Move(item, -1)));
+            opt.Items.Add(Mi(L.T("Chuyển sang phải"), () => Move(item, +1)));
         }
         string? showPath = item.PinKind == "folder" ? item.Key.Substring(7) : item.ExePath;
-        if (showPath != null) opt.Items.Add(Mi("Hiện trong Explorer", () => Launcher.ShowInExplorer(showPath)));
+        if (showPath != null) opt.Items.Add(Mi(L.T("Hiện trong Explorer"), () => Launcher.ShowInExplorer(showPath)));
         opt.Items.Add(new Separator());
-        opt.Items.Add(Mi("Đổi biểu tượng…", () => ChangeIcon(item)));
-        if (Config.Current.Theme.IconOverrides.ContainsKey(item.Key)) opt.Items.Add(Mi("Dùng biểu tượng gốc", () => ResetIcon(item)));
+        opt.Items.Add(Mi(L.T("Đổi biểu tượng…"), () => ChangeIcon(item)));
+        if (Config.Current.Theme.IconOverrides.ContainsKey(item.Key)) opt.Items.Add(Mi(L.T("Dùng biểu tượng gốc"), () => ResetIcon(item)));
         m.Items.Add(opt);
 
         if (item.Running)
         {
             m.Items.Add(new Separator());
-            m.Items.Add(Mi("Ẩn", () => { foreach (var w in item.Windows) WindowActions.Minimize(w.Hwnd); }));
-            m.Items.Add(Mi("Thoát", () => QuitApp(item, false)));
-            m.Items.Add(Mi("Buộc thoát", () =>
+            m.Items.Add(Mi(L.T("Ẩn"), () => { foreach (var w in item.Windows) WindowActions.Minimize(w.Hwnd); }));
+            m.Items.Add(Mi(L.T("Thoát"), () => QuitApp(item, false)));
+            m.Items.Add(Mi(L.T("Buộc thoát"), () =>
             {
-                if (MessageBox.Show($"Buộc thoát {item.Name}? Dữ liệu chưa lưu sẽ bị mất.", "MacDock", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                if (MessageBox.Show(L.F("Buộc thoát {0}? Dữ liệu chưa lưu sẽ bị mất.", item.Name), "MacDock", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                     QuitApp(item, true);
             }));
         }
@@ -523,15 +523,15 @@ public sealed class DockModel
     void AddDockOptions(ContextMenu m)
     {
         var cfg = Config.Current.Dock;
-        var ah = Mi("Tự động ẩn Dock", () => { cfg.AutoHide = !cfg.AutoHide; Config.Touch("dock"); });
+        var ah = Mi(L.T("Tự động ẩn Dock"), () => { cfg.AutoHide = !cfg.AutoHide; Config.Touch("dock"); });
         ah.IsChecked = cfg.AutoHide;
         m.Items.Add(ah);
-        var mag = Mi("Phóng to khi rê chuột", () => { cfg.Magnify = !cfg.Magnify; Config.Touch("dock"); });
+        var mag = Mi(L.T("Phóng to khi rê chuột"), () => { cfg.Magnify = !cfg.Magnify; Config.Touch("dock"); });
         mag.IsChecked = cfg.Magnify;
         m.Items.Add(mag);
 
-        var pos = new MenuItem { Header = "Vị trí trên màn hình" };
-        foreach (var (edge, label) in new[] { (DockEdge.Left, "Trái"), (DockEdge.Bottom, "Dưới"), (DockEdge.Right, "Phải") })
+        var pos = new MenuItem { Header = L.T("Vị trí trên màn hình") };
+        foreach (var (edge, label) in new[] { (DockEdge.Left, L.T("Trái")), (DockEdge.Bottom, L.T("Dưới")), (DockEdge.Right, L.T("Phải")) })
         {
             var e = edge;
             var mi = Mi(label, () => { cfg.Edge = e; Config.Touch("dock"); });
@@ -540,7 +540,7 @@ public sealed class DockModel
         }
         m.Items.Add(pos);
 
-        var theme = new MenuItem { Header = "Giao diện" };
+        var theme = new MenuItem { Header = L.T("Giao diện") };
         foreach (var t in ThemeManager.All())
         {
             var id = t.Id;
@@ -549,7 +549,7 @@ public sealed class DockModel
             theme.Items.Add(mi);
         }
         theme.Items.Add(new Separator());
-        foreach (var (mode, label) in new[] { (ThemeMode.Light, "Sáng"), (ThemeMode.Dark, "Tối"), (ThemeMode.System, "Theo Windows"), (ThemeMode.Schedule, "Theo giờ") })
+        foreach (var (mode, label) in new[] { (ThemeMode.Light, L.T("Sáng")), (ThemeMode.Dark, L.T("Tối")), (ThemeMode.System, "Theo Windows"), (ThemeMode.Schedule, L.T("Theo giờ")) })
         {
             var md = mode;
             var mi = Mi(label, () => { Config.Current.Theme.Mode = md; Config.Touch("theme"); });
@@ -558,9 +558,9 @@ public sealed class DockModel
         }
         m.Items.Add(theme);
         m.Items.Add(new Separator());
-        m.Items.Add(Mi("Thêm ứng dụng vào Dock…", () => new AppPickerWindow { WindowStartupLocation = WindowStartupLocation.CenterScreen }.Show()));
-        m.Items.Add(Mi("Cài đặt Dock…", () => App.Instance.ShowSettings("dock")));
-        m.Items.Add(Mi("Thoát MacDock", () => App.Instance.Quit()));
+        m.Items.Add(Mi(L.T("Thêm ứng dụng vào Dock…"), () => new AppPickerWindow { WindowStartupLocation = WindowStartupLocation.CenterScreen }.Show()));
+        m.Items.Add(Mi(L.T("Cài đặt Dock…"), () => App.Instance.ShowSettings("dock")));
+        m.Items.Add(Mi(L.T("Thoát MacDock"), () => App.Instance.Quit()));
     }
 
     public static MenuItem Mi(string header, Action action, bool enabled = true)

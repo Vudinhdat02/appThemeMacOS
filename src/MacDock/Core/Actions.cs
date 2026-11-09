@@ -102,19 +102,19 @@ public static class PowerActions
 
     public static void Restart()
     {
-        if (Confirm("Bạn có chắc muốn khởi động lại máy tính ngay bây giờ?"))
+        if (Confirm(L.T("Bạn có chắc muốn khởi động lại máy tính ngay bây giờ?")))
             Launcher.Launch("exe", Path.Combine(Environment.SystemDirectory, "shutdown.exe"), "/r /t 0");
     }
 
     public static void Shutdown()
     {
-        if (Confirm("Bạn có chắc muốn tắt máy ngay bây giờ?"))
+        if (Confirm(L.T("Bạn có chắc muốn tắt máy ngay bây giờ?")))
             Launcher.Launch("exe", Path.Combine(Environment.SystemDirectory, "shutdown.exe"), "/s /hybrid /t 0");
     }
 
     public static void LogOff()
     {
-        if (Confirm("Đăng xuất khỏi Windows? Các ứng dụng đang mở sẽ được yêu cầu đóng."))
+        if (Confirm(L.T("Đăng xuất khỏi Windows? Các ứng dụng đang mở sẽ được yêu cầu đóng.")))
             Native.ExitWindowsEx(0, 0);
     }
 }

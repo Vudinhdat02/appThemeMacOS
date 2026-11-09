@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -11,7 +11,8 @@ namespace MacDock;
 public static class Developer
 {
     public const string Name = "Vũ Đình Đạt";
-    public const string Bank = "Ngân hàng MB Bank";
+    public const string Bank = "MB Bank";
+    public const string Website = "https://vudinhdat02.github.io/";
     public const string GitHub = "https://github.com/Vudinhdat02";
     public const string Email = "vudinhdat02@gmail.com";
     public const string Repo = "https://github.com/Vudinhdat02/appThemeMacOS";
@@ -64,10 +65,7 @@ public static class Developer
 
         var row2 = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 22, 0, 0) };
         row2.Children.Add(Contact(GitHubIcon(), "GitHub", GitHub));
-        row2.Children.Add(Contact(GmailIcon(), "Gmail", "mailto:" + Email));
-        row2.Children.Add(Contact(FacebookIcon(), "Facebook", Facebook));
-        row2.Children.Add(Contact(YouTubeIcon(), "YouTube", YouTube));
-        row2.Children.Add(Contact(TikTokIcon(), "TikTok", TikTok));
+        row2.Children.Add(Contact(WebsiteIcon(), "Website", Website));
         root.Children.Add(row2);
         return root;
     }
@@ -95,7 +93,7 @@ public static class Developer
         sp.MouseLeave += (_, _) => sp.Opacity = 1;
         sp.MouseLeftButtonUp += (_, _) =>
         {
-            if (string.IsNullOrEmpty(url)) MessageBox.Show($"Chưa có liên kết {label}.", "MacDock");
+            if (string.IsNullOrEmpty(url)) MessageBox.Show(L.F("Chưa có liên kết {0}.", label), "MacDock");
             else Launcher.Open(url);
         };
         return sp;
@@ -115,6 +113,21 @@ public static class Developer
         // Octicons mark-github (MIT)
         const string d = "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z";
         return Tile(new SolidColorBrush(Color.FromRgb(0x18, 0x17, 0x17)), Vector(d, Brushes.White, 1.6, 7.2, 7.2));
+    }
+
+    static FrameworkElement WebsiteIcon()
+    {
+        var c = new Canvas { Width = 40, Height = 40 };
+        c.Children.Add(new WShapes.Rectangle { Width = 40, Height = 40, RadiusX = 10, RadiusY = 10, Fill = new LinearGradientBrush(Color.FromRgb(0x3A, 0x9B, 0xFF), Color.FromRgb(0x2B, 0x5B, 0xE8), 90) });
+        var pen = Brushes.White;
+        var g = new GeometryGroup();
+        g.Children.Add(new EllipseGeometry(new Point(20, 20), 11, 11));
+        g.Children.Add(new EllipseGeometry(new Point(20, 20), 5, 11));
+        g.Children.Add(new LineGeometry(new Point(9, 20), new Point(31, 20)));
+        g.Children.Add(new LineGeometry(new Point(11, 14), new Point(29, 14)));
+        g.Children.Add(new LineGeometry(new Point(11, 26), new Point(29, 26)));
+        c.Children.Add(new WShapes.Path { Data = g, Stroke = pen, StrokeThickness = 1.6 });
+        return new Viewbox { Child = c };
     }
 
     static FrameworkElement GmailIcon()
