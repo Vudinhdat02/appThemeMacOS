@@ -26,6 +26,8 @@
 - Dock hiện ngay khi chuột chạm cạnh màn hình (độ trễ mặc định 0, hiệu ứng nhanh hơn).
 - Popup trên Thanh Menu tự đóng khi bấm ra ngoài.
 - Khởi động nhanh khi đăng nhập: tự khởi động bằng Task Scheduler (chạy ngay khi đăng nhập, không bị Windows trì hoãn như khoá Run), hiện Dock/Thanh Menu trước rồi mới nạp phần chậm, cache icon trên đĩa.
+- Sửa lỗi Thanh Menu/Dock bị cửa sổ phóng to che mất: yêu cầu chừa chỗ (AppBar) của MacDock nay gửi thẳng tới Explorer; chờ Explorer sẵn sàng khi đăng nhập; tự đăng ký lại nếu vùng chừa chỗ bị mất.
+- Đọc đúng trạng thái tự ẩn gốc của taskbar để khi thoát trả lại đúng cài đặt của người dùng.
 - Nút mũi tên và các nút trong màn hình chào bấm được (trước đó bị thao tác kéo cửa sổ nuốt mất).
 
 ## [0.2.0] - 2026-11-09

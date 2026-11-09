@@ -73,11 +73,20 @@ public sealed class AppBar : IDisposable
 
     public bool IsRegistered => _registered;
 
+    static IntPtr AB(uint msg, ref APPBARDATA abd)
+    {
+        var copy = abd;
+        var r = TrayService.Instance.Direct(() => Native.SHAppBarMessage(msg, ref copy));
+        abd = copy;
+        return r;
+    }
+
     void Register()
     {
         if (_registered) return;
         var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = _hwnd, uCallbackMessage = CallbackMessage };
-        Native.SHAppBarMessage(Native.ABM_NEW, ref abd); // thất bại nếu đã đăng ký: vẫn coi là đã đăng ký
+        var rn = AB(Native.ABM_NEW, ref abd); // thất bại nếu đã đăng ký: vẫn coi là đã đăng ký
+        Log.Debug($"AppBar ABM_NEW hwnd={_hwnd} kết quả={rn}");
         _registered = true;
     }
 
@@ -94,7 +103,7 @@ public sealed class AppBar : IDisposable
             case Native.ABE_LEFT: abd.rc.Right = abd.rc.Left + thickness; break;
             case Native.ABE_RIGHT: abd.rc.Left = abd.rc.Right - thickness; break;
         }
-        Native.SHAppBarMessage(Native.ABM_QUERYPOS, ref abd);
+        AB(Native.ABM_QUERYPOS, ref abd);
         switch (edge)
         {
             case Native.ABE_TOP: abd.rc.Bottom = abd.rc.Top + thickness; break;
@@ -104,7 +113,8 @@ public sealed class AppBar : IDisposable
         }
         // Không đổi thì không SETPOS (tránh các AppBar báo ABN_POSCHANGED cho nhau liên tục)
         if (_hasPos && abd.rc.ToString() == Reserved.ToString()) return Reserved;
-        Native.SHAppBarMessage(Native.ABM_SETPOS, ref abd);
+        AB(Native.ABM_SETPOS, ref abd);
+        Log.Debug($"AppBar SETPOS hwnd={_hwnd} edge={edge} rc={abd.rc}");
         _hasPos = true;
         Reserved = abd.rc;
         return abd.rc;
@@ -117,14 +127,14 @@ public sealed class AppBar : IDisposable
     {
         if (!_registered) return;
         var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = _hwnd };
-        Native.SHAppBarMessage(Native.ABM_WINDOWPOSCHANGED, ref abd);
+        AB(Native.ABM_WINDOWPOSCHANGED, ref abd);
     }
 
     public void Unregister()
     {
         if (!_registered) return;
         var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = _hwnd };
-        Native.SHAppBarMessage(Native.ABM_REMOVE, ref abd);
+        AB(Native.ABM_REMOVE, ref abd);
         _registered = false;
         _hasPos = false;
     }

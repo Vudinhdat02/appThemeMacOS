@@ -101,7 +101,14 @@ public sealed class MenuBarWindow : Window
         RebuildRight();
     }
 
-    public void ExplorerRestarted() { _appBar?.Reregister(); LayoutWindow(); }
+    public bool ReservationLost()
+    {
+        if (_fullscreenHidden || Hwnd == IntPtr.Zero || !IsVisible) return false;
+        var wa = Monitors.WorkAreaOf(Monitor.Handle);
+        return wa.Top < Monitor.Bounds.Top + (int)(Cfg.Height * Monitor.Scale) - 2;
+    }
+
+    public void ExplorerRestarted() { _appBar?.Reregister(); LayoutWindow(); BringTopmost(); }
 
     public void SetMonitor(MonitorInfo m) { Monitor = m; LayoutWindow(); }
 

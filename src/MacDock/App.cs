@@ -198,13 +198,59 @@ public sealed class App : Application
         var g = Config.Current.General;
         Autostart.Apply(g.AutoStart);
         if (g.Watchdog) Dispatcher.BeginInvoke(async () => { await Task.Delay(4000); if (!_quitting) Program.StartWatchdog(); });
-        ApplyTaskbar();
+        // Lúc đăng nhập MacDock có thể chạy trước khi Explorer tạo taskbar: chờ Explorer sẵn sàng rồi mới
+        // ẩn taskbar, làm chủ khay hệ thống và chừa chỗ (nếu không, yêu cầu chừa chỗ không tới được Explorer)
+        WhenExplorerReady(() =>
+        {
+            ApplyTaskbar();
+            foreach (var b in _bars) b.ExplorerRestarted();
+            foreach (var d in _docks) d.ExplorerRestarted();
+        });
         BuildWindows();
         _maintenance = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _maintenance.Tick += (_, _) => Maintenance();
         _maintenance.Start();
         if (Config.Current.Performance.TrimMemory)
             Dispatcher.BeginInvoke(async () => { await Task.Delay(8000); TrimMemory(); });
+    }
+
+    async void WhenExplorerReady(Action a)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (TaskbarController.ExplorerTray() == IntPtr.Zero && sw.Elapsed.TotalSeconds < 90 && !_quitting)
+            await Task.Delay(300);
+        if (sw.ElapsedMilliseconds > 400) { Log.Info($"Đã chờ Explorer sẵn sàng {sw.ElapsedMilliseconds} ms"); await Task.Delay(1500); }
+        if (!_quitting) a();
+    }
+
+    DateTime _lastHeal = DateTime.MinValue;
+
+    /// <summary>Tự sửa: mất vùng chừa chỗ (Explorer khởi động lại) hoặc cửa sổ MacDock bị đẩy xuống dưới cửa sổ đang dùng.</summary>
+    void Heal()
+    {
+        if ((DateTime.Now - _lastHeal).TotalSeconds >= 5 && TaskbarController.ExplorerTray() != IntPtr.Zero)
+        {
+            bool lost = false;
+            foreach (var b in _bars) if (b.ReservationLost()) { b.ExplorerRestarted(); lost = true; }
+            foreach (var d in _docks) if (d.ReservationLost()) { d.ExplorerRestarted(); lost = true; }
+            if (lost) { _lastHeal = DateTime.Now; Log.Info("Đã đăng ký lại vùng chừa chỗ cho Thanh Menu/Dock"); }
+        }
+        IntPtr fg = Native.GetForegroundWindow();
+        if (fg == IntPtr.Zero) return;
+        Native.GetWindowThreadProcessId(fg, out uint fpid);
+        if (fpid == Environment.ProcessId || Native.FindWindow("#32768", null) is var menu && menu != IntPtr.Zero && Native.IsWindowVisible(menu)) return;
+        foreach (var h in _bars.Select(b => b.Hwnd).Concat(_docks.Select(d => d.Hwnd)))
+        {
+            if (h == IntPtr.Zero || !Native.IsWindowVisible(h)) continue;
+            IntPtr p = h;
+            for (int i = 0; i < 400 && (p = Native.GetWindow(p, 3 /*GW_HWNDPREV*/)) != IntPtr.Zero; i++)
+                if (p == fg)
+                {
+                    Native.SetWindowPos(h, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+                    Log.Debug("Đưa cửa sổ MacDock lên trên cùng lại");
+                    break;
+                }
+        }
     }
 
     void ApplyTaskbar()
@@ -279,6 +325,7 @@ public sealed class App : Application
         if (Log.Verbose && ++_maintTicks % 4 == 0) Log.Debug("Diag 12s: " + Diag.Snapshot());
         if (Config.Current.General.HideTaskbar) TaskbarController.EnsureHidden();
         CheckFullscreen();
+        Heal();
     }
 
     public void OnPowerChanged()

@@ -45,7 +45,7 @@ public static class TaskbarController
     static int GetState()
     {
         var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>() };
-        return (int)Native.SHAppBarMessage(Native.ABM_GETSTATE, ref abd).ToInt64();
+        return (int)TrayService.Instance.Direct(() => Native.SHAppBarMessage(Native.ABM_GETSTATE, ref abd)).ToInt64();
     }
 
     /// <summary>
@@ -58,7 +58,8 @@ public static class TaskbarController
         {
             using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3");
             if (k?.GetValue("Settings") is byte[] b && b.Length > 8)
-                return (b[8] & 1) != 0 ? current | Native.ABS_AUTOHIDE : current & ~Native.ABS_AUTOHIDE;
+                // chỉ coi là "tự ẩn" khi cả registry lẫn Explorer cùng báo vậy (tránh đọc nhầm giá trị cũ)
+                return (b[8] & 1) != 0 && (current & Native.ABS_AUTOHIDE) != 0 ? current : current & ~Native.ABS_AUTOHIDE;
         }
         catch { }
         return current;
@@ -67,7 +68,7 @@ public static class TaskbarController
     static void SetState(int state)
     {
         var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = ExplorerTray(), lParam = new IntPtr(state) };
-        Native.SHAppBarMessage(Native.ABM_SETSTATE, ref abd);
+        TrayService.Instance.Direct(() => Native.SHAppBarMessage(Native.ABM_SETSTATE, ref abd));
     }
 
     static IntPtr _showHook;

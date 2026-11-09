@@ -133,6 +133,27 @@ public sealed class TrayService
         Log.Info("Khay hệ thống đã dừng");
     }
 
+    static readonly object _bypassLock = new();
+
+    /// <summary>
+    /// Gọi SHAppBarMessage của chính MacDock thẳng tới Explorer: tạm đưa cửa sổ khay của mình xuống dưới
+    /// để FindWindow("Shell_TrayWnd") trả về taskbar của Explorer, gọi xong thì đưa lên lại.
+    /// (Yêu cầu AppBar đi vòng qua cửa sổ khay cùng tiến trình thì Explorer nhận nhưng không cập nhật vùng làm việc.)
+    /// </summary>
+    public T Direct<T>(Func<T> call)
+    {
+        var h = _hwnd;
+        if (h == IntPtr.Zero) return call();
+        lock (_bypassLock)
+        {
+            var ex = ExplorerTray();
+            Native.SetWindowPos(h, Native.HWND_BOTTOM, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+            if (ex != IntPtr.Zero) Native.SetWindowPos(ex, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+            try { return call(); }
+            finally { MakeTopmost(); }
+        }
+    }
+
     void MakeTopmost()
     {
         var h = _hwnd;

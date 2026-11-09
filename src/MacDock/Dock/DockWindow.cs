@@ -78,7 +78,22 @@ public sealed class DockWindow : Window
         return IntPtr.Zero;
     }
 
-    public void ExplorerRestarted() { _appBar?.Reregister(); _lastKey = ""; LayoutWindow(true); }
+    public bool ReservationLost()
+    {
+        var cfg = Config.Current.Dock;
+        if (!cfg.ReserveSpace || cfg.AutoHide || _fullscreenHidden || Hwnd == IntPtr.Zero || !IsVisible) return false;
+        var wa = Monitors.WorkAreaOf(Monitor.Handle);
+        var b = Monitor.Bounds;
+        int t = (int)(View.ReserveThickness * Monitor.Scale) - 2;
+        return cfg.Edge switch
+        {
+            DockEdge.Left => wa.Left < b.Left + t,
+            DockEdge.Right => wa.Right > b.Right - t,
+            _ => wa.Bottom > b.Bottom - t
+        };
+    }
+
+    public void ExplorerRestarted() { _appBar?.Reregister(); _lastKey = ""; LayoutWindow(true); BringTopmost(); }
 
     public void SetMonitor(MonitorInfo m) { Monitor = m; LayoutWindow(); }
 
