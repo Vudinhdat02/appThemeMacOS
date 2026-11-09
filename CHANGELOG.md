@@ -28,6 +28,8 @@
 - Khởi động nhanh khi đăng nhập: tự khởi động bằng Task Scheduler (chạy ngay khi đăng nhập, không bị Windows trì hoãn như khoá Run), hiện Dock/Thanh Menu trước rồi mới nạp phần chậm, cache icon trên đĩa.
 - Sửa lỗi Thanh Menu/Dock bị cửa sổ phóng to che mất: yêu cầu chừa chỗ (AppBar) của MacDock nay gửi thẳng tới Explorer; chờ Explorer sẵn sàng khi đăng nhập; tự đăng ký lại nếu vùng chừa chỗ bị mất.
 - Đọc đúng trạng thái tự ẩn gốc của taskbar để khi thoát trả lại đúng cài đặt của người dùng.
+- Win+Space / Shift+Win+Space đổi bộ gõ hoạt động khi taskbar gốc bị ẩn (MacDock tự xử lý và hiện bảng báo ngôn ngữ).
+- Khi tự khởi động lúc đăng nhập, MacDock đợi Explorer tạo xong taskbar thật rồi mới chạy, không chen vào lúc Windows đang khởi tạo shell.
 - Nút mũi tên và các nút trong màn hình chào bấm được (trước đó bị thao tác kéo cửa sổ nuốt mất).
 
 ## [0.2.0] - 2026-11-09

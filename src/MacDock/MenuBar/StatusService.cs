@@ -117,6 +117,12 @@ public sealed class StatusService
         return arr;
     }
 
+    public void RefreshLangSoon()
+    {
+        InputHkl = IntPtr.Zero;
+        Task.Delay(250).ContinueWith(_ => App.Instance.Dispatcher.BeginInvoke(() => { if (RefreshLang()) Changed?.Invoke(); }));
+    }
+
     public void SwitchLayout(IntPtr hkl)
     {
         IntPtr target = WindowTracker.Instance.ForegroundAppHwnd;

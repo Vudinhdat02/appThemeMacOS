@@ -28,7 +28,7 @@ public static class MediaKeys
     public static void Apply(Dispatcher ui)
     {
         _ui = ui;
-        bool want = Config.Current.General.OsdStyle == "macdock";
+        bool want = Config.Current.General.OsdStyle == "macdock" || Config.Current.General.HideTaskbar;
         if (want) Start(); else Stop();
     }
 
@@ -45,7 +45,7 @@ public static class MediaKeys
             UnhookWindowsHookEx(h);
         }) { IsBackground = true, Name = "MediaKeys" };
         _thread.Start();
-        Task.Run(StartBrightnessWatcher);
+        if (Config.Current.General.OsdStyle == "macdock") Task.Run(StartBrightnessWatcher);
     }
 
     static void StartBrightnessWatcher()
@@ -76,12 +76,36 @@ public static class MediaKeys
         _bright = null;
     }
 
+    static bool _lwin, _rwin, _shift, _swallowedSpace;
+
     static IntPtr Hook(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0)
         {
             int vk = Marshal.ReadInt32(lParam);
-            if (vk is VK_VOLUME_MUTE or VK_VOLUME_DOWN or VK_VOLUME_UP)
+            int msg0 = wParam.ToInt32();
+            bool down = msg0 is 0x100 or 0x104, up = msg0 is 0x101 or 0x105;
+            if (vk == 0x5B) _lwin = down || (!up && _lwin);
+            else if (vk == 0x5C) _rwin = down || (!up && _rwin);
+            else if (vk is 0x10 or 0xA0 or 0xA1) _shift = down || (!up && _shift);
+
+            // Win+Space: bảng chuyển ngôn ngữ của Windows gắn với taskbar gốc (đang bị ẩn) nên MacDock tự đổi bộ gõ
+            if (vk == 0x20 && (_lwin || _rwin) && TaskbarController.IsHidden)
+            {
+                if (down)
+                {
+                    bool back = _shift;
+                    _ui?.BeginInvoke(() => SwitchInputLanguage(back));
+                    _swallowedSpace = true;
+                    // phím giả để thả phím Win không mở menu Start
+                    Native.keybd_event(0xE8, 0, 0, UIntPtr.Zero);
+                    Native.keybd_event(0xE8, 0, Native.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                    return new IntPtr(1);
+                }
+                if (up && _swallowedSpace) { _swallowedSpace = false; return new IntPtr(1); }
+            }
+
+            if (Config.Current.General.OsdStyle == "macdock" && vk is VK_VOLUME_MUTE or VK_VOLUME_DOWN or VK_VOLUME_UP)
             {
                 int msg = wParam.ToInt32();
                 if (msg is 0x100 or 0x104) _ui?.BeginInvoke(() => OnVolumeKey(vk));
@@ -90,6 +114,34 @@ public static class MediaKeys
         }
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
     }
+
+    static void SwitchInputLanguage(bool previous)
+    {
+        try
+        {
+            var layouts = StatusService.Layouts();
+            if (layouts.Length < 2) return;
+            IntPtr fg = Native.GetForegroundWindow();
+            uint tid = Native.GetWindowThreadProcessId(fg, out _);
+            IntPtr cur = Native.GetKeyboardLayout(tid);
+            int i = Array.FindIndex(layouts, l => l == cur);
+            if (i < 0) i = Array.FindIndex(layouts, l => (l.ToInt64() & 0xFFFF) == (cur.ToInt64() & 0xFFFF));
+            int next = ((i < 0 ? 0 : i) + (previous ? layouts.Length - 1 : 1)) % layouts.Length;
+            IntPtr hkl = layouts[next];
+            // gửi cho cửa sổ đang có focus trong luồng foreground (vd ô nhập trong trình duyệt)
+            IntPtr target = fg;
+            var gti = new GUITHREADINFO { cbSize = Marshal.SizeOf<GUITHREADINFO>() };
+            if (GetGUIThreadInfo(tid, ref gti) && gti.hwndFocus != IntPtr.Zero) target = gti.hwndFocus;
+            Native.PostMessage(target, Native.WM_INPUTLANGCHANGEREQUEST, IntPtr.Zero, hkl);
+            OsdWindow.ShowText(StatusService.LangCode(hkl), StatusService.LangName(hkl));
+            StatusService.Instance.RefreshLangSoon();
+        }
+        catch (Exception ex) { Log.Warn("Đổi bộ gõ lỗi: " + ex.Message); }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct GUITHREADINFO { public int cbSize; public int flags; public IntPtr hwndActive, hwndFocus, hwndCapture, hwndMenuOwner, hwndMoveSize, hwndCaret; public RECT rcCaret; }
+    [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint tid, ref GUITHREADINFO info);
 
     static void OnVolumeKey(int vk)
     {
@@ -159,6 +211,26 @@ public sealed class OsdWindow : Window
         Native.AddExStyle(h, Native.WS_EX_TOOLWINDOW | Native.WS_EX_NOACTIVATE | Native.WS_EX_TRANSPARENT);
     }
 
+    /// <summary>Bảng nhỏ báo ngôn ngữ vừa chuyển (luôn hiện, kể cả khi dùng OSD của Windows).</summary>
+    public static void ShowText(string code, string name)
+    {
+        if (_inst == null || ThemeManager.Current.Def.Id + ThemeManager.Current.IsDark != _themeKey) { _inst?.Close(); _inst = new OsdWindow(); _themeKey = ThemeManager.Current.Def.Id + ThemeManager.Current.IsDark; }
+        _inst.UpdateText(code, name);
+    }
+
+    void UpdateText(string code, string name)
+    {
+        var fg = ThemeManager.Current.PopupForeground;
+        _icon.Content = new Border { BorderBrush = fg, BorderThickness = new Thickness(1.3), CornerRadius = new CornerRadius(4), Padding = new Thickness(4, 0, 4, 0), Child = new TextBlock { Text = code, FontWeight = FontWeights.Bold, FontSize = 12 } };
+        _label.Text = name;
+        _fill.Width = 0;
+        ((FrameworkElement)_fill.Parent).Visibility = Visibility.Collapsed;
+        if (!IsVisible) { Opacity = 0; Show(); }
+        Place();
+        BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(App.EffectsOff ? 0 : 120)));
+        _hide.Stop(); _hide.Start();
+    }
+
     public static void ShowLevel(OsdKind kind, double level, bool muted)
     {
         if (Config.Current.General.OsdStyle != "macdock") return;
@@ -169,6 +241,7 @@ public sealed class OsdWindow : Window
 
     void Update(OsdKind kind, double level, bool muted)
     {
+        ((FrameworkElement)_fill.Parent).Visibility = Visibility.Visible;
         var fg = ThemeManager.Current.PopupForeground;
         _icon.Content = kind == OsdKind.Volume ? Glyphs.VolumeIcon(fg, level, muted, 18) : Glyphs.Icon(Glyphs.Sun, fg, 18);
         _label.Text = kind == OsdKind.Volume ? (muted ? L.T("Âm thanh — tắt tiếng") : L.F("Âm thanh  {0}%", Math.Round(level * 100))) : L.F("Độ sáng  {0}%", Math.Round(level * 100));

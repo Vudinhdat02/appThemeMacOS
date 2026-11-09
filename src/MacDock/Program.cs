@@ -68,6 +68,13 @@ public static class Program
             return 0;
         }
 
+        if (LaunchedByAutostart)
+        {
+            // Đăng nhập: đợi Explorer tạo xong taskbar thật rồi mới khởi động (không chen vào lúc shell đang khởi tạo)
+            var sw = Stopwatch.StartNew();
+            while (sw.Elapsed.TotalSeconds < 60 && TaskbarController.ExplorerTray() == IntPtr.Zero) Thread.Sleep(250);
+            Thread.Sleep(sw.ElapsedMilliseconds > 300 ? 2500 : 300);
+        }
         return RunApp();
     }
 
