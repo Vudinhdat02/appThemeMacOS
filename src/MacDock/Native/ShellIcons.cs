@@ -178,6 +178,7 @@ public static class IconCache
                 {
                     img = ShellIcons.GetIcon(job.parsing, job.size);
                     _cache[job.key] = img;
+                    if (img is BitmapSource bs) SaveDisk(job.key, bs);
                 }
             }
             catch (Exception ex) { Log.Debug("Icon worker: " + ex.Message); }
@@ -187,10 +188,59 @@ public static class IconCache
     }
 
     /// <summary>Lấy icon (đồng bộ nếu đã có trong cache, ngược lại nạp nền và gọi callback).</summary>
+    static string DiskDir
+    {
+        get
+        {
+            var d = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MacDock", "iconcache");
+            System.IO.Directory.CreateDirectory(d);
+            return d;
+        }
+    }
+
+    static string DiskFile(string key)
+    {
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(key.ToLowerInvariant())));
+        return System.IO.Path.Combine(DiskDir, hash + ".png");
+    }
+
+    static void SaveDisk(string key, BitmapSource bs)
+    {
+        try
+        {
+            var enc = new PngBitmapEncoder();
+            enc.Frames.Add(BitmapFrame.Create(bs));
+            using var fs = System.IO.File.Create(DiskFile(key));
+            enc.Save(fs);
+        }
+        catch { }
+    }
+
+    static BitmapSource? LoadDisk(string key)
+    {
+        try
+        {
+            var f = DiskFile(key);
+            var fi = new System.IO.FileInfo(f);
+            if (!fi.Exists || (DateTime.Now - fi.LastWriteTime).TotalDays > 7) return null;
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = BitmapCacheOption.OnLoad;
+            bi.UriSource = new Uri(f);
+            bi.EndInit();
+            bi.Freeze();
+            return bi;
+        }
+        catch { return null; }
+    }
+
     public static ImageSource? Get(string parsingName, Action<ImageSource?> onLoaded)
     {
         string key = parsingName + "|" + IconPixelSize;
         if (_cache.TryGetValue(key, out var img)) return img;
+        // cache trên đĩa: có icon ngay khi vừa đăng nhập, không phải chờ shell
+        var disk = LoadDisk(key);
+        if (disk != null) { _cache[key] = disk; return disk; }
         _queue.Add((key, parsingName, IconPixelSize, onLoaded));
         return null;
     }

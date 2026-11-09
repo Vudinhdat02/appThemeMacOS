@@ -64,12 +64,10 @@ public sealed class App : Application
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/MacDock;component/UI/Styles.xaml") });
         Config.Load();
         ThemeManager.Apply();
-        ThemeManager.WriteSamples();
         IconCache.IconPixelSize = Config.Current.Dock.IconSize * Config.Current.Dock.MagnifyScale * MaxScale() > 128 ? 256 : 128;
         IconCache.Init(Dispatcher);
 
         CreateMessageWindow();
-        MediaKeys.Apply(Dispatcher);
         WindowTracker.Instance.Start();
         StatusService.Instance.Start(Dispatcher);
         DockModel.Instance.Start();
@@ -92,6 +90,19 @@ public sealed class App : Application
             StartShell();
             if (Program.OpenSettingsOnStart) ShowSettings();
         }
+
+        // Ghi lại thời gian khởi động, rồi mới làm các việc chậm (WMI, theme mẫu…) sau khi giao diện đã hiện
+        Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                var since = DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime;
+                Log.Info($"Giao diện đã hiện sau {since.TotalMilliseconds:0} ms kể từ khi tiến trình bắt đầu");
+            }
+            catch { }
+            MediaKeys.Apply(Dispatcher);
+            Task.Run(ThemeManager.WriteSamples);
+        }, DispatcherPriority.ApplicationIdle);
     }
 
     static double MaxScale()
@@ -185,7 +196,7 @@ public sealed class App : Application
         _shellStarted = true;
         var g = Config.Current.General;
         Autostart.Apply(g.AutoStart);
-        if (g.Watchdog) Program.StartWatchdog();
+        if (g.Watchdog) Dispatcher.BeginInvoke(async () => { await Task.Delay(4000); if (!_quitting) Program.StartWatchdog(); });
         ApplyTaskbar();
         BuildWindows();
         _maintenance = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };

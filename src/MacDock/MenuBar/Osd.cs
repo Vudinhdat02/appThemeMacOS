@@ -45,6 +45,11 @@ public static class MediaKeys
             UnhookWindowsHookEx(h);
         }) { IsBackground = true, Name = "MediaKeys" };
         _thread.Start();
+        Task.Run(StartBrightnessWatcher);
+    }
+
+    static void StartBrightnessWatcher()
+    {
         try
         {
             _bright = new System.Management.ManagementEventWatcher(new System.Management.ManagementScope(@"root\WMI"),

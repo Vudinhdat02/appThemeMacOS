@@ -119,35 +119,118 @@ public static class PowerActions
     }
 }
 
-/// <summary>Bật/tắt tự khởi động bằng khoá HKCU\...\Run.</summary>
+/// <summary>
+/// Tự khởi động: dùng tác vụ Task Scheduler "khi đăng nhập" (chạy ngay, không bị Windows trì hoãn như khoá Run).
+/// Nếu không tạo được tác vụ thì dùng khoá HKCU\...\Run.
+/// </summary>
 public static class Autostart
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     const string Name = "MacDock";
+    static string TaskName => "MacDock Autostart (" + Environment.UserName + ")";
 
     public static bool IsEnabled
     {
         get
         {
             using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(RunKey);
-            return k?.GetValue(Name) is string;
+            return k?.GetValue(Name) is string || TaskExists();
         }
+    }
+
+    static string Args()
+    {
+        string a = "--autostart";
+        if (Program.CustomConfigDir != null) a += $" --config-dir \"{Program.CustomConfigDir}\"";
+        return a;
+    }
+
+    static int Schtasks(string args, out string output)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "schtasks.exe"), args)
+        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        using var p = System.Diagnostics.Process.Start(psi)!;
+        output = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+        p.WaitForExit(10000);
+        return p.ExitCode;
+    }
+
+    static bool TaskExists()
+    {
+        try { return Schtasks($"/query /tn \"{TaskName}\" /xml", out _) == 0; } catch { return false; }
+    }
+
+    static string? CurrentTaskCommand()
+    {
+        try
+        {
+            if (Schtasks($"/query /tn \"{TaskName}\" /xml", out string xml) != 0) return null;
+            var m = System.Text.RegularExpressions.Regex.Match(xml, "<Command>(.*?)</Command>.*?<Arguments>(.*?)</Arguments>", System.Text.RegularExpressions.RegexOptions.Singleline);
+            return m.Success ? System.Net.WebUtility.HtmlDecode(m.Groups[1].Value) + "|" + System.Net.WebUtility.HtmlDecode(m.Groups[2].Value) : "";
+        }
+        catch { return null; }
+    }
+
+    static bool CreateTask()
+    {
+        string user = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+        string Esc(string s) => System.Security.SecurityElement.Escape(s) ?? s;
+        string xml = $@"<?xml version=""1.0"" encoding=""UTF-16""?>
+<Task version=""1.2"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
+  <RegistrationInfo><Description>Start MacDock when you sign in</Description></RegistrationInfo>
+  <Triggers><LogonTrigger><Enabled>true</Enabled><UserId>{Esc(user)}</UserId></LogonTrigger></Triggers>
+  <Principals><Principal id=""Author""><UserId>{Esc(user)}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>false</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>4</Priority>
+  </Settings>
+  <Actions Context=""Author""><Exec><Command>{Esc(Paths.ExePath)}</Command><Arguments>{Esc(Args())}</Arguments></Exec></Actions>
+</Task>";
+        string f = Path.Combine(Path.GetTempPath(), "macdock-task.xml");
+        try
+        {
+            File.WriteAllText(f, xml, System.Text.Encoding.Unicode);
+            int rc = Schtasks($"/create /tn \"{TaskName}\" /xml \"{f}\" /f", out string outp);
+            if (rc != 0) Log.Warn("Không tạo được tác vụ tự khởi động: " + outp.Trim());
+            return rc == 0;
+        }
+        finally { try { File.Delete(f); } catch { } }
     }
 
     public static void Apply(bool enable)
     {
         if (Program.NoAutostartWrite) return;
-        try
+        Task.Run(() =>
         {
-            using var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(RunKey, true);
-            if (enable)
+            try
             {
-                string cmd = $"\"{Paths.ExePath}\" --autostart";
-                if (Program.CustomConfigDir != null) cmd += $" --config-dir \"{Program.CustomConfigDir}\"";
-                if (k.GetValue(Name) as string != cmd) k.SetValue(Name, cmd);
+                using var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(RunKey, true);
+                if (enable)
+                {
+                    string want = Paths.ExePath + "|" + Args();
+                    bool ok = CurrentTaskCommand() == want || CreateTask();
+                    if (ok)
+                    {
+                        if (k.GetValue(Name) != null) k.DeleteValue(Name, false); // tránh chạy đôi
+                    }
+                    else
+                    {
+                        string cmd = $"\"{Paths.ExePath}\" {Args()}";
+                        if (k.GetValue(Name) as string != cmd) k.SetValue(Name, cmd);
+                    }
+                }
+                else
+                {
+                    if (k.GetValue(Name) != null) k.DeleteValue(Name, false);
+                    if (TaskExists()) Schtasks($"/delete /tn \"{TaskName}\" /f", out _);
+                }
             }
-            else if (k.GetValue(Name) != null) k.DeleteValue(Name, false);
-        }
-        catch (Exception ex) { Log.Warn("Autostart: " + ex.Message); }
+            catch (Exception ex) { Log.Warn("Autostart: " + ex.Message); }
+        });
     }
 }

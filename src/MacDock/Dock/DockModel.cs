@@ -73,13 +73,17 @@ public sealed class DockModel
 
     void RefreshTrash()
     {
-        try
+        var ui = Dispatcher.CurrentDispatcher;
+        Task.Run(() =>
         {
-            var info = new SHQUERYRBINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<SHQUERYRBINFO>() };
-            bool full = Native.SHQueryRecycleBin(null, ref info) == 0 && info.i64NumItems > 0;
-            if (full != _trash.TrashFull) { _trash.TrashFull = full; Invalidated?.Invoke(); }
-        }
-        catch { }
+            try
+            {
+                var info = new SHQUERYRBINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<SHQUERYRBINFO>() };
+                bool full = Native.SHQueryRecycleBin(null, ref info) == 0 && info.i64NumItems > 0;
+                ui.BeginInvoke(() => { if (full != _trash.TrashFull) { _trash.TrashFull = full; Invalidated?.Invoke(); } });
+            }
+            catch { }
+        });
     }
 
     DockItem GetOrCreate(string key, Func<DockItem> create)

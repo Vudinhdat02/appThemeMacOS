@@ -25,6 +25,7 @@
 - Thoát MacDock không bị treo khi Explorer phản hồi chậm.
 - Dock hiện ngay khi chuột chạm cạnh màn hình (độ trễ mặc định 0, hiệu ứng nhanh hơn).
 - Popup trên Thanh Menu tự đóng khi bấm ra ngoài.
+- Khởi động nhanh khi đăng nhập: tự khởi động bằng Task Scheduler (chạy ngay khi đăng nhập, không bị Windows trì hoãn như khoá Run), hiện Dock/Thanh Menu trước rồi mới nạp phần chậm, cache icon trên đĩa.
 - Nút mũi tên và các nút trong màn hình chào bấm được (trước đó bị thao tác kéo cửa sổ nuốt mất).
 
 ## [0.2.0] - 2026-11-09

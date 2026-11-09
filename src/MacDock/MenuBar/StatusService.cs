@@ -41,8 +41,11 @@ public sealed class StatusService
         NetworkChange.NetworkAvailabilityChanged += (_, _) => d.BeginInvoke(() => { RefreshNet(); Changed?.Invoke(); });
         AudioVolume.Instance.Changed += () => d.BeginInvoke(() => { RefreshAudio(); Changed?.Invoke(); });
         WindowTracker.Instance.ForegroundChanged += () => { if (RefreshLang()) Changed?.Invoke(); };
-        RefreshPower(); RefreshNet(); RefreshAudio(); RefreshLang();
+        RefreshPower(); RefreshLang();
         UpdateClock();
+        // Wi-Fi và âm thanh có thể chậm ngay sau khi đăng nhập: đọc nền rồi cập nhật
+        Task.Run(() => { var n = Wlan.Query(); d.BeginInvoke(() => { Net = n; Changed?.Invoke(); }); });
+        d.BeginInvoke(() => { RefreshAudio(); Changed?.Invoke(); }, DispatcherPriority.ApplicationIdle);
         Config.Changed += s => { if (s is "menubar" or "all") UpdateClock(); };
     }
 
