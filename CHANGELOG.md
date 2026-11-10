@@ -1,5 +1,15 @@
 # Nhật ký thay đổi / Changelog
 
+## [0.4.3] - 2026-11-10
+
+### English
+- **Fixed:** MacDock could close suddenly, without any error message, when you clicked Control Center or other menu bar panels. The mouse hook that closes panels on outside clicks was restarted every time a panel opened. When a panel opened and closed very quickly, an old hook could be left installed with no live callback, and Windows terminated the app on the next click. The hook now runs on one permanent thread, and errors inside keyboard and mouse hooks can no longer take the app down.
+- The log now records every normal exit, so a sudden termination can be told apart from a regular quit.
+
+### Tiếng Việt
+- **Sửa:** MacDock có thể tự tắt đột ngột, không báo lỗi, khi bấm Trung tâm điều khiển hoặc các bảng khác trên Thanh Menu. Hook chuột dùng để đóng bảng khi bấm ra ngoài bị khởi động lại mỗi lần mở bảng. Nếu bảng mở rồi đóng quá nhanh, một hook cũ có thể bị bỏ lại mà hàm xử lý của nó đã bị thu hồi, và Windows tắt app ở cú bấm kế tiếp. Nay hook chạy trên một luồng duy nhất suốt đời app, và lỗi bên trong hook bàn phím/chuột không còn làm sập app được nữa.
+- Log nay ghi lại mỗi lần app thoát bình thường, để phân biệt được với trường hợp bị tắt đột ngột.
+
 ## [0.4.2] - 2026-11-10
 
 ### English

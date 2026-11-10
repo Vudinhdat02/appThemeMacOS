@@ -348,7 +348,7 @@ public sealed class ControlCenter
             "lock" => () => { _popup.Close(); PowerActions.Lock(); },
             _ => () => { }
         };
-        if (id == "airplane") _ = StatusService.GetRadios().ContinueWith(t => App.Instance.Dispatcher.BeginInvoke(() => Repaint(circle, t.Result.wifi == false && t.Result.bt != true, def)));
+        if (id == "airplane") _ = StatusService.GetRadios().ContinueWith(t => { if (t.IsCompletedSuccessfully) App.Instance.Dispatcher.BeginInvoke(() => Repaint(circle, t.Result.wifi == false && t.Result.bt != true, def)); });
 
         if (medium)
         {
@@ -504,6 +504,7 @@ public sealed class ControlCenter
         sw.IsEnabled = false;
         _ = StatusService.GetRadios().ContinueWith(t => App.Instance.Dispatcher.BeginInvoke(() =>
         {
+            if (!t.IsCompletedSuccessfully) { loading = false; return; }
             if (t.Result.bt is bool b) sw.IsChecked = b;
             loading = false;
             sw.IsEnabled = t.Result.bt != null;

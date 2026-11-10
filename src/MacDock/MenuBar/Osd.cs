@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -21,7 +21,7 @@ public static class MediaKeys
     const int VK_VOLUME_MUTE = 0xAD, VK_VOLUME_DOWN = 0xAE, VK_VOLUME_UP = 0xAF;
     static Thread? _thread;
     static uint _tid;
-    static LowLevelProc? _proc;
+    static readonly LowLevelProc _proc = Hook; // giữ sống suốt đời app (xem OutsideClick)
     static Dispatcher? _ui;
     static System.Management.ManagementEventWatcher? _bright;
 
@@ -38,7 +38,6 @@ public static class MediaKeys
         _thread = new Thread(() =>
         {
             _tid = Native.GetCurrentThreadId();
-            _proc = Hook;
             IntPtr h = SetWindowsHookEx(13, _proc, Native.GetModuleHandle(null), 0);
             if (h == IntPtr.Zero) { Log.Warn("Không cài được hook phím âm lượng"); return; }
             while (Native.GetMessage(out var m, IntPtr.Zero, 0, 0) > 0) { Native.TranslateMessage(ref m); Native.DispatchMessage(ref m); }
@@ -79,6 +78,12 @@ public static class MediaKeys
     static bool _lwin, _rwin, _shift, _swallowedSpace;
 
     static IntPtr Hook(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        try { return HookCore(nCode, wParam, lParam); }
+        catch { return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam); } // ngoại lệ không được thoát ra callback của Windows
+    }
+
+    static IntPtr HookCore(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0)
         {

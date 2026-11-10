@@ -5,7 +5,7 @@ namespace MacDock;
 
 /// <summary>
 /// Đóng popup/menu khi bấm chuột ra ngoài ở bất kỳ đâu trên màn hình (kể cả trong app khác, desktop).
-/// Dùng hook chuột cấp thấp trên một luồng riêng, chỉ bật khi đang có popup/menu mở.
+/// Dùng hook chuột cấp thấp trên một luồng riêng; chỉ xử lý khi đang có popup/menu mở.
 /// </summary>
 public static class OutsideClick
 {
@@ -21,7 +21,9 @@ public static class OutsideClick
     static readonly List<Entry> _entries = new();
     static Thread? _thread;
     static uint _tid;
-    static LowLevelProc? _proc;
+    // Một delegate duy nhất, sống suốt đời app: Windows giữ con trỏ tới nó trong lúc hook còn cài. Nếu tạo mới mỗi lần
+    // bật hook, delegate cũ có thể bị GC thu hồi khi luồng hook cũ chưa kịp gỡ → app bị Windows tắt ngay, không kịp ghi log.
+    static readonly LowLevelProc _proc = Hook;
     static Dispatcher? _ui;
 
     /// <summary>
@@ -32,44 +34,53 @@ public static class OutsideClick
     {
         _ui ??= System.Windows.Application.Current.Dispatcher;
         var e = new Entry { Close = close, Inside = inside };
-        lock (_entries) { _entries.Add(e); if (_entries.Count == 1) Start(); }
-        return () => { lock (_entries) { if (_entries.Remove(e) && _entries.Count == 0) Stop(); } };
+        lock (_entries) { _entries.Add(e); _active = _entries.Count; }
+        EnsureThread();
+        return () => { lock (_entries) { _entries.Remove(e); _active = _entries.Count; } };
     }
 
-    static void Start()
+    static volatile int _active;
+
+    /// <summary>
+    /// Một luồng hook duy nhất chạy suốt đời app (khi không có popup nào mở, hook chỉ chuyển tiếp ngay — gần như không tốn gì).
+    /// Trước đây hook được bật/tắt theo từng popup: mở rồi đóng thật nhanh có thể để lại luồng hook cũ không được gỡ,
+    /// delegate của nó bị GC thu hồi và Windows tắt MacDock ở cú bấm chuột kế tiếp mà không kịp ghi log.
+    /// </summary>
+    static void EnsureThread()
     {
-        _thread = new Thread(() =>
+        lock (_entries)
         {
-            _tid = Native.GetCurrentThreadId();
-            _proc = Hook;
-            IntPtr h = SetWindowsHookEx(14 /*WH_MOUSE_LL*/, _proc, Native.GetModuleHandle(null), 0);
-            while (Native.GetMessage(out var m, IntPtr.Zero, 0, 0) > 0) { Native.TranslateMessage(ref m); Native.DispatchMessage(ref m); }
-            if (h != IntPtr.Zero) UnhookWindowsHookEx(h);
-        }) { IsBackground = true, Name = "OutsideClick" };
-        _thread.Start();
-    }
-
-    static void Stop()
-    {
-        if (_tid != 0) PostThreadMessage(_tid, Native.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
-        _thread = null; _tid = 0;
+            if (_thread != null) return;
+            _thread = new Thread(() =>
+            {
+                _tid = Native.GetCurrentThreadId();
+                IntPtr h = SetWindowsHookEx(14 /*WH_MOUSE_LL*/, _proc, Native.GetModuleHandle(null), 0);
+                if (h == IntPtr.Zero) { Log.Warn("Không cài được hook chuột (đóng popup khi bấm ra ngoài)"); return; }
+                while (Native.GetMessage(out var m, IntPtr.Zero, 0, 0) > 0) { Native.TranslateMessage(ref m); Native.DispatchMessage(ref m); }
+                UnhookWindowsHookEx(h);
+            }) { IsBackground = true, Name = "OutsideClick" };
+            _thread.Start();
+        }
     }
 
     static IntPtr Hook(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0)
+        try
         {
-            int msg = wParam.ToInt32();
-            if (msg is 0x201 or 0x204 or 0x207) // WM_LBUTTONDOWN / RBUTTONDOWN / MBUTTONDOWN
+            if (nCode >= 0 && _active > 0)
             {
-                var pt = Marshal.PtrToStructure<POINT>(lParam);
-                IntPtr root = Native.GetAncestor(WindowFromPoint(pt), Native.GA_ROOT);
-                _ui?.BeginInvoke(() => Handle(root));
+                int msg = wParam.ToInt32();
+                if (msg is 0x201 or 0x204 or 0x207) // WM_LBUTTONDOWN / RBUTTONDOWN / MBUTTONDOWN
+                {
+                    var pt = Marshal.PtrToStructure<POINT>(lParam);
+                    IntPtr root = Native.GetAncestor(WindowFromPoint(pt), Native.GA_ROOT);
+                    _ui?.BeginInvoke(() => { try { Handle(root); } catch (Exception ex) { Log.Error("OutsideClick", ex); } });
+                }
             }
         }
+        catch { /* không bao giờ để ngoại lệ thoát ra khỏi callback của Windows */ }
         return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
     }
-
     static void Handle(IntPtr root)
     {
         Native.GetWindowThreadProcessId(root, out uint pid);

@@ -54,6 +54,8 @@ public sealed class App : Application
         };
         AppDomain.CurrentDomain.ProcessExit += (_, _) => EmergencyCleanup();
         DispatcherUnhandledException += OnDispatcherError;
+        // Ghi lại mỗi lần tiến trình kết thúc bình thường: nếu log dừng mà không có dòng này thì app bị hệ thống tắt đột ngột
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { try { Log.Info("Tiến trình kết thúc (mã " + Environment.ExitCode + ")"); } catch { } };
         TaskScheduler.UnobservedTaskException += (_, a) => { Log.Error("Task lỗi", a.Exception); a.SetObserved(); };
         SessionEnding += (_, _) => EmergencyCleanup();
 
