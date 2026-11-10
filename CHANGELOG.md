@@ -1,5 +1,13 @@
 # Nhật ký thay đổi / Changelog
 
+## [0.4.2] - 2026-11-10
+
+### English
+- **Fixed:** the Bluetooth panel in Control Center flickered nonstop. Showing the current Bluetooth state was treated as a click on the switch, so the panel kept rebuilding itself.
+
+### Tiếng Việt
+- **Sửa:** bảng Bluetooth trong Trung tâm điều khiển nháy liên tục. Việc hiển thị trạng thái Bluetooth hiện tại bị coi như một lần bấm công tắc nên bảng cứ tự dựng lại.
+
 ## [0.4.1] - 2026-11-10
 
 ### English

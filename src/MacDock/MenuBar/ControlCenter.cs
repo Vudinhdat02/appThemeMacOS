@@ -491,13 +491,23 @@ public sealed class ControlCenter
 
     FrameworkElement BluetoothView()
     {
+        // Trạng thái thật được đọc sau (bất đồng bộ): khi gán lại công tắc bằng mã thì KHÔNG coi là người dùng bấm,
+        // nếu không sẽ bật radio → dựng lại bảng → gán lại → ... (bảng nháy liên tục).
+        bool loading = true;
         var sw = Switch(false, async v =>
         {
+            if (loading) return;
             await StatusService.SetRadio(Windows.Devices.Radios.RadioKind.Bluetooth, v);
             await Task.Delay(1200);
             Show(BluetoothView());
         });
-        _ = StatusService.GetRadios().ContinueWith(t => App.Instance.Dispatcher.BeginInvoke(() => { if (t.Result.bt is bool b) sw.IsChecked = b; }));
+        sw.IsEnabled = false;
+        _ = StatusService.GetRadios().ContinueWith(t => App.Instance.Dispatcher.BeginInvoke(() =>
+        {
+            if (t.Result.bt is bool b) sw.IsChecked = b;
+            loading = false;
+            sw.IsEnabled = t.Result.bt != null;
+        }));
         var frame = DetailFrame("Bluetooth", sw, out var body, L.T("Cài đặt Bluetooth…"), "ms-settings:bluetooth");
         body.Children.Add(Sub(L.T("Đang tải thiết bị…")));
         _ = BluetoothDevices.PairedAsync().ContinueWith(t => App.Instance.Dispatcher.BeginInvoke(() =>
