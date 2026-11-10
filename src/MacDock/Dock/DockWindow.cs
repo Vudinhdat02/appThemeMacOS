@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -22,8 +22,13 @@ public sealed class DockWindow : Window
         Monitor = monitor;
         Title = "MacDock Dock";
         WindowStyle = WindowStyle.None;
-        AllowsTransparency = true;
+        // Mặc định: cửa sổ được DWM ghép trong suốt trực tiếp (không phải cửa sổ "layered").
+        // Cửa sổ layered của WPF phải chép cả khung hình qua CPU mỗi lần vẽ nên hiệu ứng phóng to chỉ được ~30-40 khung/giây.
+        Composited = Environment.GetEnvironmentVariable("MD_LAYERED") != "1";
+        AllowsTransparency = !Composited;
         Background = Brushes.Transparent;
+        if (Composited)
+            System.Windows.Shell.WindowChrome.SetWindowChrome(this, new System.Windows.Shell.WindowChrome { CaptionHeight = 0, GlassFrameThickness = new Thickness(-1), ResizeBorderThickness = new Thickness(0), CornerRadius = new CornerRadius(0), UseAeroCaptionButtons = false });
         Topmost = true;
         ShowInTaskbar = false;
         ShowActivated = false;
@@ -57,6 +62,12 @@ public sealed class DockWindow : Window
         Native.AddExStyle(Hwnd, Native.WS_EX_TOOLWINDOW | Native.WS_EX_NOACTIVATE);
         int pref = 1; // DWMWCP_DONOTROUND
         Native.DwmSetWindowAttribute(Hwnd, Native.DWMWA_WINDOW_CORNER_PREFERENCE, ref pref, 4);
+        if (Composited)
+        {
+            if (HwndSource.FromHwnd(Hwnd)?.CompositionTarget is { } ct) ct.BackgroundColor = Colors.Transparent;
+            int none = unchecked((int)0xFFFFFFFE); // không viền DWM
+            Native.DwmSetWindowAttribute(Hwnd, Native.DWMWA_BORDER_COLOR, ref none, 4);
+        }
         int excl = 1;
         Native.DwmSetWindowAttribute(Hwnd, Native.DWMWA_EXCLUDED_FROM_PEEK, ref excl, 4);
         HwndSource.FromHwnd(Hwnd)?.AddHook(WndProc);
@@ -91,6 +102,36 @@ public sealed class DockWindow : Window
             DockEdge.Right => wa.Right > b.Right - t,
             _ => wa.Bottom > b.Bottom - t
         };
+    }
+
+    public bool Composited { get; }
+    string _rgnKey = "";
+
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")] static extern IntPtr CreateRectRgn(int l, int t, int r, int b);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")] static extern int CombineRgn(IntPtr dst, IntPtr a, IntPtr b, int mode);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr h);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern int SetWindowRgn(IntPtr h, IntPtr rgn, bool redraw);
+
+    /// <summary>
+    /// Vùng nhận chuột của cửa sổ (đơn vị DIP của Dock). null = cả cửa sổ. Cửa sổ ghép bằng DWM không tự cho chuột
+    /// xuyên qua chỗ trong suốt, nên khi không rê chuột trên Dock chỉ giữ phần nền Dock để bấm được vào app bên dưới.
+    /// </summary>
+    public void SetHitRegion(IReadOnlyList<Rect>? dip)
+    {
+        if (!Composited || Hwnd == IntPtr.Zero) return;
+        double sc = Monitor.Scale;
+        string key = dip == null ? "all" : string.Join(";", dip.Select(r => $"{Math.Floor(r.Left * sc)},{Math.Floor(r.Top * sc)},{Math.Ceiling(r.Right * sc)},{Math.Ceiling(r.Bottom * sc)}"));
+        if (key == _rgnKey) return;
+        _rgnKey = key;
+        if (dip == null) { SetWindowRgn(Hwnd, IntPtr.Zero, false); return; }
+        IntPtr rgn = CreateRectRgn(0, 0, 0, 0);
+        foreach (var r in dip)
+        {
+            var one = CreateRectRgn((int)Math.Floor(r.Left * sc), (int)Math.Floor(r.Top * sc), (int)Math.Ceiling(r.Right * sc), (int)Math.Ceiling(r.Bottom * sc));
+            CombineRgn(rgn, rgn, one, 2 /*RGN_OR*/);
+            DeleteObject(one);
+        }
+        if (SetWindowRgn(Hwnd, rgn, false) == 0) DeleteObject(rgn);
     }
 
     public void ExplorerRestarted() { _appBar?.Reregister(); _lastKey = ""; LayoutWindow(true); BringTopmost(); }

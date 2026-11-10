@@ -21,7 +21,7 @@ public sealed class App : Application
         get
         {
             int f = Config.Current.Performance.FpsLimit;
-            if (ReducedEffects) f = f <= 0 ? 30 : Math.Min(f, 30);
+            if (ReducedEffects) f = f <= 0 ? 60 : Math.Min(f, 60); // vẽ Dock nay rất nhẹ: khi dùng pin chỉ chặn ở 60 (màn hình tần số cao)
             return f;
         }
     }
@@ -451,6 +451,8 @@ public sealed class App : Application
                 case 21: OsdWindow.ShowLevel(lo == 1 ? OsdKind.Brightness : OsdKind.Volume, hi / 100.0, false); break;
                 case 22: AudioVolume.Instance.Level = lo / 100f; break;
                 case 24: Config.Current.Dock.AutoHide = lo == 1; Config.Touch("dock"); break;
+                case 26: FrameStats.Reset(); break;
+                case 27: Log.Info(FrameStats.Report()); break;
                 case 25: Dispatcher.BeginInvoke(() => ConfirmDialog.Ask(L.T("Bạn có chắc muốn tắt máy ngay bây giờ?"), "", L.T("Đồng ý"))); break;
                 case 23: foreach (Window w in Windows) if (w is WelcomeWindow ww) ww.TestGo(lo); break;
                 case 16: if (_settings != null) _settings.WindowState = lo == 1 ? WindowState.Maximized : WindowState.Normal; break;

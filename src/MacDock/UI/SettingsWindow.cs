@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -648,7 +648,7 @@ public sealed class SettingsWindow : Window
         var card = Card(content);
         Row(card, L.T("Giới hạn khung hình"), Combo(new[] { (30, "30 FPS"), (60, "60 FPS"), (120, "120 FPS"), (0, L.T("Không giới hạn (theo màn hình)")) }, p.FpsLimit, v => { p.FpsLimit = v; T(); }), L.T("Chỉ ảnh hưởng lúc đang có hiệu ứng; khi rảnh MacDock không vẽ lại"));
         Row(card, L.T("Tắt hiệu ứng"), Toggle(p.DisableAnimations, v => { p.DisableAnimations = v; T(); }), L.T("Không phóng to, không nảy, chuyển cảnh tức thì"));
-        Row(card, L.T("Giảm hiệu ứng khi dùng pin"), Toggle(p.ReduceOnBattery, v => { p.ReduceOnBattery = v; T(); }), L.T("Tối đa 30 FPS và không nảy khi rút sạc"));
+        Row(card, L.T("Giảm hiệu ứng khi dùng pin"), Toggle(p.ReduceOnBattery, v => { p.ReduceOnBattery = v; T(); }), L.T("Tối đa 60 FPS khi rút sạc (tiết kiệm pin trên màn hình tần số cao)"));
         Row(card, L.T("Thu gọn bộ nhớ khi rảnh"), Toggle(p.TrimMemory, v => { p.TrimMemory = v; T(); }), L.T("Trả lại RAM cho hệ thống sau khi khởi động / đóng Cài đặt"));
 
         var live = Card(content, L.T("Đang dùng"));

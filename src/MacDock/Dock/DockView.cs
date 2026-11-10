@@ -110,9 +110,10 @@ public sealed class DockView : FrameworkElement
     {
         if (Log.Verbose) Diag.Hit("applySettings");
         var t = ThemeManager.Current;
-        if (Cfg.Shadow && t != null && t.ShadowOpacity > 0)
-            Effect = new DropShadowEffect { BlurRadius = t.ShadowBlur, Opacity = t.ShadowOpacity, ShadowDepth = 3, Direction = Edge switch { DockEdge.Left => 0, DockEdge.Right => 180, _ => 270 }, Color = Colors.Black, RenderingBias = RenderingBias.Performance };
-        else Effect = null;
+        // Bóng của Dock được vẽ trực tiếp (DrawShadow) thay vì DropShadowEffect: hiệu ứng làm mỗi khung hình
+        // phải chạy shader trên cả cửa sổ trong suốt, khiến Dock chỉ đạt ~30 khung/giây khi phóng to.
+        Effect = null;
+        _shadowLayers = null;
         _hideTarget = EffectiveAutoHide ? 1 : 0;
         if (!Cfg.AutoHide) { _hide = 0; if (_appliedOffset != 0) { _appliedOffset = 0; _win.SetHideOffset(0); } }
         InvalidateVisual();
@@ -197,6 +198,12 @@ public sealed class DockView : FrameworkElement
         if (fps > 0 && now - _lastFrame < 1.0 / fps - 0.003) return;
         _lastTick = now;
         _lastFrame = now;
+        double __t0 = FrameStats.Ms;
+        try { Tick(now, dt); } finally { if (_hover || Math.Abs(_hide - _hideTarget) > 0.001) FrameStats.Frame(FrameStats.Ms - __t0); }
+    }
+
+    void Tick(double now, double dt)
+    {
 
         bool hadMouse = ReadMouse(out double u, out double v);
         bool busy = _dragging || _extDrag || _menuOpen;
@@ -280,6 +287,7 @@ public sealed class DockView : FrameworkElement
         }
         else _stillFrames = 0;
         _stillU = u; _stillV = v;
+        UpdateHitRegion(bouncing || busy);
         CheckPreview();
     }
 
@@ -481,6 +489,12 @@ public sealed class DockView : FrameworkElement
         var theme = ThemeManager.Current;
         if (theme == null) return;
         Diag.Renders++;
+        double __r0 = FrameStats.Ms;
+        try { RenderCore(dc, theme); } finally { FrameStats.Render(FrameStats.Ms - __r0); }
+    }
+
+    void RenderCore(DrawingContext dc, ResolvedTheme theme)
+    {
         double now = DockModel.Now;
         Layout(now);
         double shift = 0;
@@ -496,6 +510,7 @@ public sealed class DockView : FrameworkElement
         var plate = R(_plateStart, v0, _plateEnd - _plateStart, PlateThick);
         double radius = Math.Min(theme.CornerRadius, PlateThick / 2);
         Pen? border = theme.BorderThickness > 0 ? new Pen(theme.DockBorder, theme.BorderThickness) : null;
+        if (Cfg.Shadow && theme.ShadowOpacity > 0) DrawShadow(dc, plate, radius, theme);
         dc.DrawRoundedRectangle(theme.DockBackground, border, plate, radius, radius);
         if (theme.Def.DockMaterial == "glass" && theme.BorderThickness > 0)
         {
@@ -559,6 +574,52 @@ public sealed class DockView : FrameworkElement
     }
 
     static Rect Inflate(Rect r, double d) { r.Inflate(d, d); return r; }
+
+    /// <summary>Vùng nhận chuột của cửa sổ Dock: cả cửa sổ khi đang tương tác/hiệu ứng, ngược lại chỉ nền Dock (để bấm xuyên xuống app phía dưới).</summary>
+    void UpdateHitRegion(bool active)
+    {
+        if (!_win.Composited) return;
+        if (active || _hover || _pressItem != null || PreviewWindow.AnyOpen || CurrentMaxScale() > 1.001) { _win.SetHitRegion(null); return; }
+        double blur = Cfg.Shadow ? Math.Clamp(ThemeManager.Current?.ShadowBlur ?? 0, 4, 40) * 0.55 + 4 : 2;
+        var list = new List<Rect>
+        {
+            R(_plateStart - blur, 0, _plateEnd - _plateStart + 2 * blur, Margin0 + PlateThick + blur),
+            R(_plateStart - 30, _appliedOffset, _plateEnd - _plateStart + 60, 3),
+        };
+        _win.SetHitRegion(list);
+    }
+
+    Brush[]? _shadowLayers;
+    const int ShadowSteps = 7;
+
+    /// <summary>Bóng mềm quanh nền Dock: vài lớp bo góc mờ dần (rẻ hơn nhiều so với hiệu ứng làm mờ), chừa phần dưới nền.</summary>
+    void DrawShadow(DrawingContext dc, Rect plate, double radius, ResolvedTheme theme)
+    {
+        double blur = Math.Clamp(theme.ShadowBlur, 4, 40) * 0.55;
+        if (_shadowLayers == null)
+        {
+            _shadowLayers = new Brush[ShadowSteps];
+            for (int i = 0; i < ShadowSteps; i++)
+            {
+                double a = theme.ShadowOpacity * 0.55 / ShadowSteps * (1 + 0.6 * (ShadowSteps - i) / ShadowSteps);
+                var b = new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(a * 255, 1, 255), 0, 0, 0)); b.Freeze();
+                _shadowLayers[i] = b;
+            }
+        }
+        var shadow = plate;
+        var off = R(0, -2.5, 0, 0).TopLeft - R(0, 0, 0, 0).TopLeft; // lệch nhẹ về phía mép màn hình
+        shadow.Offset(off);
+        var outer = shadow; outer.Inflate(blur + 2, blur + 2);
+        var clip = new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(outer), new RectangleGeometry(plate, radius, radius));
+        dc.PushClip(clip);
+        for (int i = 0; i < ShadowSteps; i++)
+        {
+            double d = blur * (i + 1) / ShadowSteps;
+            var r = shadow; r.Inflate(d, d);
+            dc.DrawRoundedRectangle(_shadowLayers[i], null, r, radius + d, radius + d);
+        }
+        dc.Pop();
+    }
 
     void DrawIcon(DrawingContext dc, DockItem it, Rect rect, ResolvedTheme theme)
     {

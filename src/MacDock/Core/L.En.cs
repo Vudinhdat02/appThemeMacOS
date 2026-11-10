@@ -314,7 +314,7 @@ public static partial class L
         ["Toàn màn hình"] = "Full Screen",
         ["Tốc độ hiệu ứng"] = "Animation speed",
         ["Tối"] = "Dark",
-        ["Tối đa 30 FPS và không nảy khi rút sạc"] = "At most 30 FPS when unplugged",
+        ["Tối đa 60 FPS khi rút sạc (tiết kiệm pin trên màn hình tần số cao)"] = "Up to 60 FPS on battery (saves power on high-refresh displays)",
         ["Tối giản"] = "Minimal",
         ["Tối từ"] = "Dark from",
         ["Trả lại RAM cho hệ thống sau khi khởi động / đóng Cài đặt"] = "Return RAM to the system after startup / closing Settings",

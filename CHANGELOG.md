@@ -4,9 +4,11 @@
 
 ### English
 - **Fixed:** with auto-hide on, the Dock no longer hides while the pointer is on a window preview, or moving from the icon to the preview. The icon stays magnified, and the Dock hides only after the pointer leaves both the Dock and the preview.
+- **Smoother Dock:** magnification now runs at the display's refresh rate (measured about 57-60 fps on a 60 Hz screen, previously about 27-30 fps with frequent stutters). The Dock window is composited directly by DWM instead of being a layered window, and the shadow is drawn directly instead of with a blur effect. The on-battery limit is now 60 FPS instead of 30.
 
 ### Tiếng Việt
 - **Sửa:** khi bật tự ẩn, Dock không còn ẩn khi chuột đang ở ô xem trước cửa sổ hoặc đang di từ icon lên ô đó. Icon vẫn phóng to, và Dock chỉ ẩn khi chuột rời cả Dock lẫn ô xem trước.
+- **Dock mượt hơn:** hiệu ứng phóng to chạy theo tần số màn hình (đo được khoảng 57-60 khung/giây trên màn hình 60 Hz, trước đây khoảng 27-30 khung/giây và hay bị giật). Cửa sổ Dock nay do DWM ghép trực tiếp thay vì là cửa sổ layered, và bóng được vẽ trực tiếp thay vì dùng hiệu ứng làm mờ. Giới hạn khi dùng pin nay là 60 FPS thay vì 30.
 
 ## [0.4.0] - 2026-11-10
 
