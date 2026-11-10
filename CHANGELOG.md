@@ -1,5 +1,13 @@
 # Nhật ký thay đổi / Changelog
 
+## [0.4.1] - 2026-11-10
+
+### English
+- **Fixed:** with auto-hide on, the Dock no longer hides while the pointer is on a window preview, or moving from the icon to the preview. The icon stays magnified, and the Dock hides only after the pointer leaves both the Dock and the preview.
+
+### Tiếng Việt
+- **Sửa:** khi bật tự ẩn, Dock không còn ẩn khi chuột đang ở ô xem trước cửa sổ hoặc đang di từ icon lên ô đó. Icon vẫn phóng to, và Dock chỉ ẩn khi chuột rời cả Dock lẫn ô xem trước.
+
 ## [0.4.0] - 2026-11-10
 
 ### English

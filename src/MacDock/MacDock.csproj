@@ -14,8 +14,8 @@
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\MacDock.ico</ApplicationIcon>
-    <Version>0.4.0</Version>
-    <FileVersion>0.4.0.0</FileVersion>
+    <Version>0.4.1</Version>
+    <FileVersion>0.4.1.0</FileVersion>
     <Product>MacDock</Product>
     <Company>MacDock</Company>
     <Description>MacDock - giao diện kiểu macOS cho Windows 11</Description>

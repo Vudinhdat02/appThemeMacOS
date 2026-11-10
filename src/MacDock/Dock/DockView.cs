@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -202,7 +202,10 @@ public sealed class DockView : FrameworkElement
         bool busy = _dragging || _extDrag || _menuOpen;
         bool hover = busy || (hadMouse && WantsHover(u, v, _hover));
         bool edgeOnly = hover && _atEdge && (u < -999 || u < _plateStart || u > _plateEnd); // ở mép nhưng ngoài Dock: hiện Dock, không phóng to
+        // chuột đang ở ô xem trước cửa sổ (hoặc khoảng giữa icon và ô đó): coi như vẫn ở trên Dock — không ẩn, giữ icon phóng to
+        bool previewHold = !busy && PreviewWindow.HoldsDock();
         if (_menuOpen) hover = _hover; // giữ nguyên khi menu mở
+        else if (previewHold) { hover = true; edgeOnly = false; }
         else { _mouseU = u; _mouseV = v; }
 
         // tự ẩn (thông minh: chỉ ẩn khi có cửa sổ che Dock, nếu bật)
@@ -347,6 +350,7 @@ public sealed class DockView : FrameworkElement
     public void IdleCheckHover()
     {
         if (!_pausedHover) return;
+        if (PreviewWindow.HoldsDock()) return; // chuột đang ở ô xem trước: giữ nguyên, không vẽ lại
         CheckPreview();
         if (ReadMouse(out double u, out double v) && (Math.Abs(u - _stillU) > 0.01 || Math.Abs(v - _stillV) > 0.01 || !WantsHover(u, v, true)))
         {

@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -38,6 +38,13 @@ public sealed class PreviewWindow : Window
     public static bool AnyOpen => _inst != null && _inst.IsVisible;
     public static bool IsOpenFor(DockItem item) => _inst?.Item == item && _inst.IsVisible;
     public static bool ContainsCursor() => _inst != null && _inst.IsVisible && _inst.CursorInside();
+    /// <summary>Ô xem trước đang mở và chuột nằm trong nó hoặc trên đường từ icon tới nó → Dock phải giữ nguyên.</summary>
+    public static bool HoldsDock()
+    {
+        if (_inst == null || !_inst.IsVisible || _inst._hwnd == IntPtr.Zero) return false;
+        Native.GetCursorPos(out var pt);
+        return _inst.CursorInside() || _inst.BetweenIconAndPreview(pt);
+    }
 
     PreviewWindow()
     {
